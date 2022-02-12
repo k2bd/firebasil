@@ -23,6 +23,8 @@ jobs:
         run: poetry install
       - name: Lint
         run: poetry run poe lint
+      - name: Install Firebase Emulator Suite
+        run: npm install -g firebase-tools@10.0.1
       - name: Test
         run: poetry run poe test
       - name: Upload coverage report
