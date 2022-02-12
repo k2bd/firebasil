@@ -5,8 +5,8 @@ from typing import Any, Dict, Optional
 
 import aiohttp
 
-from firebased.exceptions import RtdbRequestException
-from firebased.types import JSON
+from firebasil.exceptions import RtdbRequestException
+from firebasil.types import JSON
 
 
 @dataclass

@@ -1,10 +1,10 @@
-class FirebasedException(Exception):
+class firebasilException(Exception):
     """
-    Base exception for Firebased
+    Base exception for firebasil
     """
 
 
-class RtdbException(FirebasedException):
+class RtdbException(firebasilException):
     """
     An issue with the realtime database
     """

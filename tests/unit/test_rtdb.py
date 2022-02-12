@@ -3,7 +3,7 @@ from unittest import mock
 
 import pytest
 
-from firebased.rtdb import RtdbNode
+from firebasil.rtdb import RtdbNode
 
 TEST_CHILD_PATHS_AND_EXPECTED = [
     [

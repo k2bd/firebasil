@@ -2,6 +2,7 @@ node_modules
 .serverless
 
 .vscode/
+.devcontainer/
 
 .dev.env
 
