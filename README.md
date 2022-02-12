@@ -1,8 +1,8 @@
-# Firebased
+# firebasil
 
-[![CI](https://github.com/k2bd/firebased/actions/workflows/ci.yml/badge.svg)](https://github.com/k2bd/firebased/actions/workflows/ci.yml)
-[![codecov](https://codecov.io/gh/k2bd/firebased/branch/main/graph/badge.svg?token=0X48PIN0MC)](https://codecov.io/gh/k2bd/firebased)
-[![PyPI](https://img.shields.io/pypi/v/firebased)](https://pypi.org/project/firebased/)
+[![CI](https://github.com/k2bd/firebasil/actions/workflows/ci.yml/badge.svg)](https://github.com/k2bd/firebasil/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/k2bd/firebasil/branch/main/graph/badge.svg?token=0X48PIN0MC)](https://codecov.io/gh/k2bd/firebasil)
+[![PyPI](https://img.shields.io/pypi/v/firebasil)](https://pypi.org/project/firebasil/)
 
 A modern async Firebase library.
 
@@ -11,6 +11,8 @@ Docs TBD
 ## Developing
 
 Install [Poetry](https://python-poetry.org/) and `poetry install` the project
+
+Install the [Firebase CLI](https://firebase.google.com/docs/cli). Make sure the emulators are installed and configured with `firebase init emulators`.
 
 ### Useful Commands
 

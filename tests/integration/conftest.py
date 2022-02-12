@@ -2,7 +2,7 @@ from typing import AsyncGenerator
 
 import pytest
 
-from firebased.rtdb import Rtdb, RtdbNode
+from firebasil.rtdb import Rtdb, RtdbNode
 from tests.integration.constants import TESTING_DATABASE_URL
 
 

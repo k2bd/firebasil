@@ -1,13 +1,13 @@
 [tool.poetry]
-name = "firebased"
+name = "firebasil"
 version = "0.1.2-alpha.0"
 description = "A modern async Firebase library"
 authors = ["Kevin Duff <kevinkelduff@gmail.com>"]
 
 license = "MIT"
 readme = "README.md"
-homepage = "https://github.com/k2bd/firebased"
-repository = "https://github.com/k2bd/firebased"
+homepage = "https://github.com/k2bd/firebasil"
+repository = "https://github.com/k2bd/firebasil"
 keywords = []
 classifiers = [
     "Operating System :: OS Independent",
@@ -60,12 +60,12 @@ test.sequence = ["unit", "integration"]
 
 [tool.poe.tasks.unit]
 sequence = [
-    {cmd = "pytest -vv --cov-report xml --cov-report term --cov=firebased tests/unit"},
+    {cmd = "pytest -vv --cov-report xml --cov-report term --cov=firebasil tests/unit"},
 ]
 
 [tool.poe.tasks.integration]
 sequence = [
-    {shell = 'firebase emulators:exec --only database --project demo-firebased-test "pytest -vv --cov-append --cov-report xml --cov-report term --cov=firebased tests/integration"'},
+    {shell = 'firebase emulators:exec --only database --project demo-firebasil-test "pytest -vv --cov-append --cov-report xml --cov-report term --cov=firebasil tests/integration"'},
 ]
 
 [build-system]

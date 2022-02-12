@@ -1,6 +1,6 @@
 import pytest
 
-from firebased.rtdb import RtdbNode
+from firebasil.rtdb import RtdbNode
 
 
 @pytest.mark.asyncio
