@@ -1,5 +1,9 @@
 # Firebased
 
+[![CI](https://github.com/k2bd/firebased/actions/workflows/ci.yml/badge.svg)](https://github.com/k2bd/firebased/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/k2bd/firebased/branch/main/graph/badge.svg?token=0X48PIN0MC)](https://codecov.io/gh/k2bd/firebased)
+[![PyPI](https://img.shields.io/pypi/v/firebased)](https://pypi.org/project/firebased/)
+
 A modern async Firebase library.
 
 Docs TBD

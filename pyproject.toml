@@ -6,8 +6,8 @@ authors = ["Kevin Duff <kevinkelduff@gmail.com>"]
 
 license = "MIT"
 readme = "README.md"
-homepage = "https://github.com/k2bd/poetry-library-template"
-repository = "https://github.com/k2bd/poetry-library-template"
+homepage = "https://github.com/k2bd/firebased"
+repository = "https://github.com/k2bd/firebased"
 keywords = []
 classifiers = [
     "Operating System :: OS Independent",
