@@ -58,6 +58,9 @@ class Rtdb:
 
 @dataclass
 class RtdbNode:
+    """
+    A node within the realtime database
+    """
 
     _rtdb: Rtdb = field(
         repr=False,
@@ -121,6 +124,35 @@ class RtdbNode:
             json=data,
         ) as response:
             self._handle_request_error(response, "put")
+            return await response.json()
+
+    async def push(self, data: JSON) -> str:
+        """
+        Push data into a list, returning the ID of the new node.
+
+        See https://firebase.google.com/docs/database/web/lists-of-data
+        """
+        async with self._rtdb.session.post(
+            self.json_url,
+            params=self.params,
+            json=data,
+        ) as response:
+            self._handle_request_error(response, "post")
+            result = await response.json()
+            return result["name"]
+
+    async def update(self, data: JSON) -> JSON:
+        """
+        Update data at a given location with new JSON.
+
+        See https://firebase.google.com/docs/database/web/read-and-write#updating_or_deleting_data
+        """  # noqa: E501
+        async with self._rtdb.session.patch(
+            self.json_url,
+            params=self.params,
+            json=data,
+        ) as response:
+            self._handle_request_error(response, "patch")
             return await response.json()
 
     async def delete(self) -> None:
