@@ -38,3 +38,16 @@ def test_child_multi(paths: List[str], expected_path: str):
         node = node.child(path)
 
     assert node.path == expected_path
+
+
+@pytest.mark.parametrize(
+    ["paths", "expected_path"],
+    TEST_CHILD_PATHS_AND_EXPECTED,
+)
+def test_child_slashes(paths: List[str], expected_path: str):
+    node = RtdbNode(_rtdb=mock.Mock())
+
+    for path in paths:
+        node = node / path
+
+    assert node.path == expected_path
