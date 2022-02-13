@@ -12,5 +12,4 @@ async def rtdb_root() -> AsyncGenerator[RtdbNode, None]:
         try:
             yield root
         finally:
-            # TODO: clear database
             await root.delete()
