@@ -7,13 +7,13 @@ from contextlib import asynccontextmanager
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
 from enum import Enum
-from typing import Any, AsyncGenerator, Dict, Optional, runtime_checkable
+from typing import Any, AsyncGenerator, Dict, Optional
 from urllib.parse import urljoin
 
 import aiohttp
 from aiohttp_sse_client import client as sse_client
 from aiohttp_sse_client.client import MessageEvent
-from typing_extensions import Protocol
+from typing_extensions import Protocol, runtime_checkable
 
 from firebasil.exceptions import RtdbListenerConnectionException, RtdbRequestException
 from firebasil.types import JSON
