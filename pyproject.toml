@@ -29,6 +29,7 @@ include = [
 python = "^3.7"
 aiohttp = "^3.8.1"
 aiohttp-sse-client = "^0.2.1"
+typing-extensions = "^4.1.1"
 
 [tool.poetry.dev-dependencies]
 pytest = "^6.1"
