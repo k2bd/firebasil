@@ -28,6 +28,7 @@ include = [
 [tool.poetry.dependencies]
 python = "^3.7"
 aiohttp = "^3.8.1"
+aiohttp-sse-client = "^0.2.1"
 
 [tool.poetry.dev-dependencies]
 pytest = "^6.1"
@@ -38,6 +39,8 @@ mypy = "^0.931"
 pytest-cov = "^3.0.0"
 poethepoet = "^0.11.0"
 pytest-asyncio = "^0.18.1"
+freezegun = "^1.1.0"
+types-freezegun = "^1.1.6"
 
 [tool.isort]
 profile = "black"
