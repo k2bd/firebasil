@@ -1,3 +1,4 @@
+import asyncio
 from datetime import datetime, timezone
 
 import pytest
@@ -134,6 +135,8 @@ async def test_listener(rtdb_root: RtdbNode):
             await write_node.update({"a/a1": "new1", "a/a3": "new3", "b/b1": None})
 
             await (write_node / "a").delete()
+
+            await asyncio.sleep(0.5)
 
     # N.B. seems to always grab the cleanup from the previous test...
     assert len(messages) in [3, 4]
