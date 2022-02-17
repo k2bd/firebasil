@@ -130,13 +130,18 @@ async def test_listener(rtdb_root: RtdbNode):
     frozen_time = datetime(2020, 1, 2, 3, 4, 5, tzinfo=timezone.utc)
     with freeze_time(frozen_time):
         async with rtdb_events_list(observe_node) as messages:
+            print("AAA")
             await write_node.set(initial_state)
 
+            print("BBB")
             await write_node.update({"a/a1": "new1", "a/a3": "new3", "b/b1": None})
+            print("CCC")
 
             await (write_node / "a").delete()
+            print("DDD")
 
-            await asyncio.sleep(0.5)
+            # await asyncio.sleep(3)
+            # print("EEE")
 
     # N.B. seems to always grab the cleanup from the previous test...
     assert len(messages) in [3, 4]

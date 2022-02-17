@@ -11,11 +11,10 @@ from typing import Any, AsyncGenerator, Dict, Optional
 from urllib.parse import urljoin
 
 import aiohttp
-from aiohttp_sse_client import client as sse_client
-from aiohttp_sse_client.client import MessageEvent
 from typing_extensions import Protocol, runtime_checkable
 
 from firebasil.exceptions import RtdbListenerConnectionException, RtdbRequestException
+from firebasil.sse.SseClient import SseClient, SseMessage
 from firebasil.types import JSON
 
 logger = logging.getLogger(__name__)
@@ -201,107 +200,28 @@ class RtdbNode:
     async def listen(
         self,
         on_event: OnEvent,
-        reconnection_time: Optional[timedelta] = None,
-        max_connect_retry: Optional[int] = None,
-    ) -> AsyncGenerator[RtdbListener, None]:
-        listener = RtdbListener(_node=self, on_event=on_event)
-        await listener.start_listening(
-            reconnection_time=reconnection_time,
-            max_connect_retry=max_connect_retry,
-        )
+    ) -> AsyncGenerator[None, None]:
+        def on_message(message: SseMessage):
+            logger.info("Message: %s", message)
+            event = RtdbEvent(
+                event=EventType[message.event],
+                path=message.data["path"],
+                data=message.data["data"],
+            )
+            on_event(event)
 
-        try:
-            yield listener
-        finally:
-            await listener.stop_listening()
-
+        async with SseClient(
+            url=urljoin(self._rtdb.database_url, self.json_url),
+            headers=self._rtdb.session.headers,
+            params=self.params,
+            on_message=on_message,
+        ):
+            yield None
 
 @runtime_checkable
 class OnEvent(Protocol):
     def __call__(self, event: RtdbEvent) -> None:
         ...
-
-
-@dataclass
-class RtdbListener:
-    _node: RtdbNode
-
-    stream_consumer: Optional[asyncio.Task] = field(
-        default=None,
-        init=False,
-        repr=False,
-        hash=False,
-        compare=False,
-    )
-
-    #: Callable to trigger when an event is received
-    on_event: OnEvent = field(repr=False)
-
-    async def start_listening(
-        self,
-        reconnection_time: Optional[timedelta] = None,
-        max_connect_retry: Optional[int] = None,
-    ):
-        opened = False
-        errored = False
-
-        connect_kwargs: Dict[str, Any] = {}
-        if reconnection_time:
-            connect_kwargs["reconnection_time"] = reconnection_time
-        if max_connect_retry:
-            connect_kwargs["max_connect_retry"] = max_connect_retry
-
-        def handle_message(message: MessageEvent):
-            logger.info("Message: %s", message)
-            json_msg: Dict[str, Any] = json.loads(message.data)
-            event = RtdbEvent(
-                event=EventType[message.type],
-                path=json_msg["path"],
-                data=json_msg["data"],
-            )
-            self.on_event(event)
-
-        def handle_open():
-            nonlocal opened
-            opened = True
-
-        def handle_error():
-            nonlocal errored
-            errored = True
-
-        async def listener_coro():
-            url = urljoin(self._node._rtdb.database_url, self._node.json_url)
-            headers = {
-                **self._node._rtdb.session.headers,
-                "Accept": "text/event-stream",
-            }
-            async with sse_client.EventSource(
-                url,
-                headers=headers,
-                params=self._node.params,
-                on_message=handle_message,
-                on_open=handle_open,
-                on_error=handle_error,
-                **connect_kwargs,
-            ) as event_source:
-                async for event in event_source:
-                    logger.debug(event)
-
-        loop = asyncio.get_event_loop()
-        self.stream_consumer = loop.create_task(listener_coro())
-        while not opened and not errored:
-            await asyncio.sleep(0)
-        if errored:
-            raise RtdbListenerConnectionException(
-                f"Unable to listen to {self._node.json_url}"
-            )
-
-    async def stop_listening(self):
-        self.stream_consumer.cancel()
-        while not self.stream_consumer.cancelled():
-            await asyncio.sleep(0)
-        self.stream_consumer = None
-
 
 @dataclass
 class RtdbEvent:

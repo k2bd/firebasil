@@ -28,7 +28,6 @@ include = [
 [tool.poetry.dependencies]
 python = "^3.7"
 aiohttp = "^3.8.1"
-aiohttp-sse-client = "^0.2.1"
 typing-extensions = "^4.1.1"
 
 [tool.poetry.dev-dependencies]
@@ -69,7 +68,7 @@ sequence = [
 
 [tool.poe.tasks.integration]
 sequence = [
-    {shell = 'firebase emulators:exec --only database --project demo-firebasil-test "pytest -vv --cov-append --cov-report xml --cov-report term --cov=firebasil tests/integration"'},
+    {shell = 'firebase emulators:exec --only database --project demo-firebasil-test "pytest -vv --cov-append --cov-report xml --cov-report term --cov=firebasil -s tests/integration"'},
 ]
 
 [build-system]
