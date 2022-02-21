@@ -1,4 +1,3 @@
-import asyncio
 from datetime import datetime, timezone
 
 import pytest
@@ -106,6 +105,7 @@ async def test_update(rtdb_root: RtdbNode):
     }
 
 
+@pytest.mark.skip("WIP")
 @pytest.mark.asyncio
 async def test_listener(rtdb_root: RtdbNode):
     """
@@ -183,6 +183,7 @@ async def test_listener(rtdb_root: RtdbNode):
         pytest.fail("Unexpected messages length")
 
 
+@pytest.mark.skip("WIP")
 @pytest.mark.asyncio
 async def test_listener_cant_connect():
     """

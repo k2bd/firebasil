@@ -1,10 +1,10 @@
 import asyncio
-from dataclasses import dataclass, field
 import json
+from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional
-from typing_extensions import Protocol, runtime_checkable
 
 import aiohttp
+from typing_extensions import Protocol, runtime_checkable
 
 from firebasil.types import JSON
 
@@ -89,7 +89,10 @@ class SseClient:
             Open the connection and consume events
             """
             sse_session = aiohttp.ClientSession(
-                headers={**self.headers, "Accept": "text/event-stream",},
+                headers={
+                    **self.headers,
+                    "Accept": "text/event-stream",
+                },
             )
             try:
                 async with sse_session.get(
