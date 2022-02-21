@@ -1,25 +1,28 @@
 from __future__ import annotations
 
-import asyncio
-import json
 import logging
 from contextlib import asynccontextmanager
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 from enum import Enum
 from typing import Any, AsyncGenerator, Dict, Optional
 from urllib.parse import urljoin
 
 import aiohttp
-from typing_extensions import Protocol, runtime_checkable
+from typing_extensions import Protocol, Self, runtime_checkable
 
-from firebasil.exceptions import RtdbListenerConnectionException, RtdbRequestException
+from firebasil.exceptions import RtdbRequestException
 from firebasil.sse.SseClient import SseClient, SseMessage
 from firebasil.types import JSON
 
 logger = logging.getLogger(__name__)
 
 STARTUP_TIME_SECONDS = 0.5
+
+ORDER_BY_PARAM = "orderBy"
+ORDER_BY_KEY = "$key"
+ORDER_BY_VALUE = "$value"
+ORDER_BY_PRIORITY = "$priority"
 
 
 class EventType(str, Enum):
@@ -126,11 +129,11 @@ class RtdbNode:
         """
         return self.child(path)
 
-    def _handle_request_error(self, response: aiohttp.ClientResponse, method: str):
+    def _handle_request_error(self, response: aiohttp.ClientResponse):
         try:
             response.raise_for_status()
         except Exception as e:
-            msg = f"Error in {method.upper()} {self.path!r}: {str(e)}"
+            msg = f"Error in {response.request_info.method} {self.path!r}: {str(e)}"
             raise RtdbRequestException(msg) from e
 
     async def get(self) -> JSON:
@@ -141,7 +144,7 @@ class RtdbNode:
             self.json_url,
             params=self.params,
         ) as response:
-            self._handle_request_error(response, "get")
+            self._handle_request_error(response)
             return await response.json()
 
     async def set(self, data: JSON) -> JSON:
@@ -153,7 +156,7 @@ class RtdbNode:
             params=self.params,
             json=data,
         ) as response:
-            self._handle_request_error(response, "put")
+            self._handle_request_error(response)
             return await response.json()
 
     async def push(self, data: JSON) -> str:
@@ -167,7 +170,7 @@ class RtdbNode:
             params=self.params,
             json=data,
         ) as response:
-            self._handle_request_error(response, "post")
+            self._handle_request_error(response)
             result = await response.json()
             return result["name"]
 
@@ -182,7 +185,7 @@ class RtdbNode:
             params=self.params,
             json=data,
         ) as response:
-            self._handle_request_error(response, "patch")
+            self._handle_request_error(response)
             return await response.json()
 
     async def delete(self) -> None:
@@ -193,14 +196,101 @@ class RtdbNode:
             self.json_url,
             params=self.params,
         ) as response:
-            self._handle_request_error(response, "delete")
+            self._handle_request_error(response)
             return await response.json()
+
+    def _copy_with_params(self, **kwargs) -> Self:
+        query_params = {**self.query_params}
+        query_params.update(kwargs)
+        return type(self)(
+            _rtdb=self._rtdb,
+            path=self.path.copy(),
+            query_params=query_params,
+        )
+
+    def order_by_key(self) -> Self:
+        """
+        Order filtering operations by key.
+
+        Note, this does not order results, as they are returned as unordered
+        JSON.
+        """
+        return self._copy_with_params(orderBy=ORDER_BY_KEY)
+
+    def order_by_value(self) -> Self:
+        """
+        Order filtering operations by node value.
+
+        Note, this does not order results, as they are returned as unordered
+        JSON.
+        """
+        return self._copy_with_params(orderBy=ORDER_BY_VALUE)
+
+    def order_by_priority(self) -> Self:
+        """
+        Order filtering operations by priority.
+
+        Note, this does not order results, as they are returned as unordered
+        JSON.
+        """
+        return self._copy_with_params(orderBy=ORDER_BY_PRIORITY)
+
+    def order_by(self, child_locaiton: str) -> Self:
+        """
+        Order filtering operations by the value of a child node.
+
+        Note, this does not order results, as they are returned as unordered
+        JSON.
+        """
+        return self._copy_with_params(orderBy=child_locaiton)
+
+    def limit_to_first(self, limit: int) -> Self:
+        """
+        Only return the first ``limit`` results after some ordering and
+        filtering is applied.
+
+        See https://firebase.google.com/docs/database/rest/retrieve-data#section-rest-filtering
+        """  # noqa: E501
+        return self._copy_with_params(limitToFirst=str(limit))
+
+    def limit_to_last(self, limit: int) -> Self:
+        """
+        Only return the last ``limit`` results after some ordering and
+        filtering is applied.
+        """
+        return self._copy_with_params(limitToLast=str(limit))
+
+    def start_at(self, value: Any) -> Self:
+        """
+        Return values starting at ``value`` under some ordering.
+
+        See https://firebase.google.com/docs/database/rest/retrieve-data#section-rest-filtering
+        """  # noqa: E501
+        return self._copy_with_params(startAt=str(value))
+
+    def end_at(self, value: Any) -> Self:
+        """
+        Return values ending at ``value`` under some ordering.
+
+        See https://firebase.google.com/docs/database/rest/retrieve-data#section-rest-filtering
+        """  # noqa: E501
+        return self._copy_with_params(endAt=str(value))
+
+    def equal_to(self, value: Any) -> Self:
+        """
+        Return values with value equal to ``value`` under some ordering.
+
+        See https://firebase.google.com/docs/database/rest/retrieve-data#section-rest-filtering
+        """  # noqa: E501
+        return self._copy_with_params(equalTo=str(value))
 
     @asynccontextmanager
     async def listen(
         self,
         on_event: OnEvent,
     ) -> AsyncGenerator[None, None]:
+        raise NotImplementedError("Working on SSE streams...")
+
         def on_message(message: SseMessage):
             logger.info("Message: %s", message)
             event = RtdbEvent(
@@ -218,10 +308,12 @@ class RtdbNode:
         ):
             yield None
 
+
 @runtime_checkable
 class OnEvent(Protocol):
     def __call__(self, event: RtdbEvent) -> None:
         ...
+
 
 @dataclass
 class RtdbEvent:

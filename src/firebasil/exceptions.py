@@ -4,6 +4,18 @@ class FirebasilException(Exception):
     """
 
 
+class AuthException(FirebasilException):
+    """
+    An issue with auth
+    """
+
+
+class AuthRequestException(AuthException):
+    """
+    An issue with a network request to auth
+    """
+
+
 class RtdbException(FirebasilException):
     """
     An issue with the realtime database
