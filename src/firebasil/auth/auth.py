@@ -5,7 +5,12 @@ from typing import Any, Dict, Optional
 import aiohttp
 from stringcase import snakecase
 
-from firebasil.auth.types import RefreshUser, SignInWithTokenUser, SignUpUser
+from firebasil.auth.types import (
+    RefreshUser,
+    SignInWithPasswordUser,
+    SignInWithTokenUser,
+    SignUpUser,
+)
 from firebasil.exceptions import AuthRequestException
 
 logger = logging.getLogger(__name__)
@@ -112,3 +117,4 @@ class Auth:
         """
         body = {"email": email, "password": password, RETURN_SECURE_TOKEN_PARAM: True}
         user_data = await self._post(SIGN_IN_PASSWORD_ROUTE, body)
+        return SignInWithPasswordUser(**snakeify_dict_keys(user_data))
