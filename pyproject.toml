@@ -68,7 +68,7 @@ sequence = [
 
 [tool.poe.tasks.integration]
 sequence = [
-    {shell = 'firebase emulators:exec --only database --project demo-firebasil-test "pytest -vv --cov-append --cov-report xml --cov-report term --cov=firebasil -s tests/integration"'},
+    {shell = 'firebase emulators:exec --project demo-firebasil-test "pytest -vv --cov-append --cov-report xml --cov-report term --cov=firebasil -s tests/integration"'},
 ]
 
 [build-system]
