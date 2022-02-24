@@ -4,6 +4,7 @@ import asyncio
 import logging
 from contextlib import asynccontextmanager
 from dataclasses import dataclass, field
+from datetime import timedelta
 from enum import Enum
 from typing import Any, AsyncGenerator, Dict, Optional
 from urllib.parse import urljoin
@@ -19,10 +20,10 @@ logger = logging.getLogger(__name__)
 
 STARTUP_TIME_SECONDS = 0.5
 
-ORDER_BY_PARAM = "orderBy"
 ORDER_BY_KEY = "$key"
 ORDER_BY_VALUE = "$value"
 ORDER_BY_PRIORITY = "$priority"
+EXPORT_FORMAT = "export"
 
 
 class EventType(str, Enum):
@@ -31,6 +32,14 @@ class EventType(str, Enum):
     keep_alive = "keep-alive"
     cancel = "cancel"
     auth_revoked = "auth_revoked"
+
+
+class SizeLimit(str, Enum):
+    tiny = "tiny"
+    small = "small"
+    medium = "medium"
+    large = "large"
+    unlimited = "unlimited"
 
 
 @dataclass
@@ -133,7 +142,7 @@ class RtdbNode:
         try:
             response.raise_for_status()
         except Exception as e:
-            msg = f"Error in {response.request_info.method} {self.path!r}: {str(e)}"
+            msg = f"Error in {response.request_info.method} /{self.path}: {str(e)}"
             raise RtdbRequestException(msg) from e
 
     async def get(self) -> JSON:
@@ -200,11 +209,11 @@ class RtdbNode:
             return await response.json()
 
     def _copy_with_params(self, **kwargs) -> Self:
-        query_params = {**self.query_params}
+        query_params = {**(self.query_params or {})}
         query_params.update(kwargs)
         return type(self)(
             _rtdb=self._rtdb,
-            path=self.path.copy(),
+            path=self.path,
             query_params=query_params,
         )
 
@@ -214,8 +223,10 @@ class RtdbNode:
 
         Note, this does not order results, as they are returned as unordered
         JSON.
-        """
-        return self._copy_with_params(orderBy=ORDER_BY_KEY)
+
+        See https://firebase.google.com/docs/database/rest/retrieve-data#section-rest-ordered-data
+        """  # noqa: E501
+        return self.order_by(ORDER_BY_KEY)
 
     def order_by_value(self) -> Self:
         """
@@ -223,8 +234,10 @@ class RtdbNode:
 
         Note, this does not order results, as they are returned as unordered
         JSON.
-        """
-        return self._copy_with_params(orderBy=ORDER_BY_VALUE)
+
+        See https://firebase.google.com/docs/database/rest/retrieve-data#section-rest-ordered-data
+        """  # noqa: E501
+        return self.order_by(ORDER_BY_VALUE)
 
     def order_by_priority(self) -> Self:
         """
@@ -232,17 +245,22 @@ class RtdbNode:
 
         Note, this does not order results, as they are returned as unordered
         JSON.
-        """
-        return self._copy_with_params(orderBy=ORDER_BY_PRIORITY)
 
-    def order_by(self, child_locaiton: str) -> Self:
+        See https://firebase.google.com/docs/database/rest/retrieve-data#section-rest-ordered-data
+        """  # noqa: E501
+        return self.order_by(ORDER_BY_PRIORITY)
+
+    def order_by(self, child_location: str) -> Self:
         """
-        Order filtering operations by the value of a child node.
+        Order filtering operations by the value of a specified (possibly
+        nested) child node.
 
         Note, this does not order results, as they are returned as unordered
         JSON.
-        """
-        return self._copy_with_params(orderBy=child_locaiton)
+
+        See https://firebase.google.com/docs/database/rest/retrieve-data#section-rest-ordered-data
+        """  # noqa: E501
+        return self._copy_with_params(orderBy=f'"{child_location}"')
 
     def limit_to_first(self, limit: int) -> Self:
         """
@@ -266,7 +284,9 @@ class RtdbNode:
 
         See https://firebase.google.com/docs/database/rest/retrieve-data#section-rest-filtering
         """  # noqa: E501
-        return self._copy_with_params(startAt=str(value))
+        return self._copy_with_params(
+            startAt=f'"{value}"' if isinstance(value, str) else value
+        )
 
     def end_at(self, value: Any) -> Self:
         """
@@ -274,7 +294,9 @@ class RtdbNode:
 
         See https://firebase.google.com/docs/database/rest/retrieve-data#section-rest-filtering
         """  # noqa: E501
-        return self._copy_with_params(endAt=str(value))
+        return self._copy_with_params(
+            endAt=f'"{value}"' if isinstance(value, str) else value
+        )
 
     def equal_to(self, value: Any) -> Self:
         """
@@ -282,7 +304,42 @@ class RtdbNode:
 
         See https://firebase.google.com/docs/database/rest/retrieve-data#section-rest-filtering
         """  # noqa: E501
-        return self._copy_with_params(equalTo=str(value))
+        return self._copy_with_params(
+            equalTo=f'"{value}"' if isinstance(value, str) else value
+        )
+
+    def shallow(self) -> Self:
+        """
+        Create a node that only gets shallow data
+
+        See https://firebase.google.com/docs/reference/rest/database#section-param-shallow
+        """  # noqa: E501
+        return self._copy_with_params(shallow="true")
+
+    def export_format(self) -> Self:
+        """
+        Include priority data in responses
+
+        See https://firebase.google.com/docs/reference/rest/database#section-param-format
+        """  # noqa: E501
+        return self._copy_with_params(format=EXPORT_FORMAT)
+
+    def timeout(self, timeout: timedelta) -> Self:
+        """
+        Set a request timeout.
+
+        See https://firebase.google.com/docs/reference/rest/database#section-param-timeout
+        """  # noqa: E501
+        timeout_str = f"{timeout.total_seconds()}s"
+        return self._copy_with_params(timeout=timeout_str)
+
+    def write_size_limit(self, limit: SizeLimit) -> Self:
+        """
+        Limit write sizes.
+
+        See https://firebase.google.com/docs/reference/rest/database#section-param-writesizelimit
+        """  # noqa: E501
+        return self._copy_with_params(writeSizeLimit=limit.value)
 
     @asynccontextmanager
     async def events(self) -> AsyncGenerator[asyncio.Queue[RtdbEvent], None]:
