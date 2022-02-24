@@ -1,12 +1,9 @@
-from datetime import datetime, timezone
+import asyncio
 
 import pytest
-from freezegun import freeze_time
 
-from firebasil.exceptions import RtdbListenerConnectionException
+from firebasil.exceptions import RtdbEventStreamException
 from firebasil.rtdb import EventType, Rtdb, RtdbEvent, RtdbNode
-
-from .helpers import rtdb_events_list
 
 
 @pytest.mark.asyncio
@@ -14,10 +11,7 @@ async def test_set_and_get_rtdb_root(rtdb_root: RtdbNode):
     """
     Can get and set data at the root level
     """
-    data = {
-        "a": "b",
-        "c": "d",
-    }
+    data = {"a": "b", "c": "d"}
     set_data = await rtdb_root.set(data=data)
     assert set_data == data, set_data
 
@@ -105,7 +99,6 @@ async def test_update(rtdb_root: RtdbNode):
     }
 
 
-@pytest.mark.skip("WIP")
 @pytest.mark.asyncio
 async def test_listener(rtdb_root: RtdbNode):
     """
@@ -127,21 +120,18 @@ async def test_listener(rtdb_root: RtdbNode):
     observe_node = rtdb_root / "aaa"
     write_node = observe_node / "bbb"
 
-    frozen_time = datetime(2020, 1, 2, 3, 4, 5, tzinfo=timezone.utc)
-    with freeze_time(frozen_time):
-        async with rtdb_events_list(observe_node) as messages:
-            print("AAA")
-            await write_node.set(initial_state)
+    messages = []
 
-            print("BBB")
-            await write_node.update({"a/a1": "new1", "a/a3": "new3", "b/b1": None})
-            print("CCC")
+    async with observe_node.events() as events:
+        await asyncio.sleep(1)
+        await write_node.set(initial_state)
+        await write_node.update({"a/a1": "new1", "a/a3": "new3", "b/b1": None})
+        await (write_node / "a").delete()
+        await asyncio.sleep(1)
 
-            await (write_node / "a").delete()
-            print("DDD")
-
-            # await asyncio.sleep(3)
-            # print("EEE")
+        while not events.empty():
+            msg = await events.get()
+            messages.append(msg)
 
     # N.B. seems to always grab the cleanup from the previous test...
     assert len(messages) in [3, 4]
@@ -153,19 +143,16 @@ async def test_listener(rtdb_root: RtdbNode):
                 "a": {"a1": "1", "a2": "2"},
                 "b": {"b1": {"b11": "1", "b12": "2"}, "b2": "2"},
             },
-            time_received=frozen_time,
         ),
         RtdbEvent(
             event=EventType.patch,
             path="/bbb",
             data={"a/a1": "new1", "a/a3": "new3", "b/b1": None},
-            time_received=frozen_time,
         ),
         RtdbEvent(
             event=EventType.put,
             path="/bbb/a",
             data=None,
-            time_received=frozen_time,
         ),
     ]
 
@@ -176,14 +163,12 @@ async def test_listener(rtdb_root: RtdbNode):
             event=EventType.put,
             path="/",
             data=None,
-            time_received=frozen_time,
         )
         assert messages == [spurious_event] + expected_messages
     else:
         pytest.fail("Unexpected messages length")
 
 
-@pytest.mark.skip("WIP")
 @pytest.mark.asyncio
 async def test_listener_cant_connect():
     """
@@ -194,6 +179,6 @@ async def test_listener_cant_connect():
         pass
 
     async with Rtdb(database_url="http://nothing") as bogus_root:
-        with pytest.raises(RtdbListenerConnectionException):
-            async with bogus_root.listen(on_event=on_event):
+        with pytest.raises(RtdbEventStreamException):
+            async with bogus_root.events():
                 pass

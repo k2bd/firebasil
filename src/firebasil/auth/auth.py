@@ -6,6 +6,7 @@ import aiohttp
 from stringcase import snakecase
 
 from firebasil.auth.types import (
+    AnonymousUser,
     RefreshUser,
     SignInWithPasswordUser,
     SignInWithTokenUser,
@@ -20,6 +21,7 @@ ACCOUNTS_ROUTE = "accounts"
 TOKEN_ROUTE = "token"
 SIGN_UP_ROUTE = ACCOUNTS_ROUTE + ":signUp"
 SIGN_IN_PASSWORD_ROUTE = ACCOUNTS_ROUTE + ":signInWithPassword"
+SIGN_IN_OAUTH_ROUTE = ACCOUNTS_ROUTE + ":signInWithIdp"
 
 RETURN_SECURE_TOKEN_PARAM = "returnSecureToken"
 
@@ -118,3 +120,11 @@ class Auth:
         body = {"email": email, "password": password, RETURN_SECURE_TOKEN_PARAM: True}
         user_data = await self._post(SIGN_IN_PASSWORD_ROUTE, body)
         return SignInWithPasswordUser(**snakeify_dict_keys(user_data))
+
+    async def sign_in_anonymous(self):
+        """
+        Sign in anonymously
+        """
+        body = {RETURN_SECURE_TOKEN_PARAM: True}
+        user_data = await self._post(SIGN_UP_ROUTE, body)
+        return AnonymousUser(**snakeify_dict_keys(user_data))
