@@ -1,9 +1,9 @@
 from __future__ import annotations
 
+import asyncio
 import logging
 from contextlib import asynccontextmanager
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
 from enum import Enum
 from typing import Any, AsyncGenerator, Dict, Optional
 from urllib.parse import urljoin
@@ -12,7 +12,7 @@ import aiohttp
 from typing_extensions import Protocol, Self, runtime_checkable
 
 from firebasil.exceptions import RtdbRequestException
-from firebasil.sse.SseClient import SseClient, SseMessage
+from firebasil.sse.sse_client import SseClient, SseMessage
 from firebasil.types import JSON
 
 logger = logging.getLogger(__name__)
@@ -285,20 +285,25 @@ class RtdbNode:
         return self._copy_with_params(equalTo=str(value))
 
     @asynccontextmanager
-    async def listen(
-        self,
-        on_event: OnEvent,
-    ) -> AsyncGenerator[None, None]:
-        raise NotImplementedError("Working on SSE streams...")
+    async def events(self) -> AsyncGenerator[asyncio.Queue[RtdbEvent], None]:
+        """
+        Async context manager that listens to the event stream of this node and
+        adds events to the async queue that it yields.
+        """
+        events = asyncio.Queue()
 
-        def on_message(message: SseMessage):
+        async def on_message(message: SseMessage):
             logger.info("Message: %s", message)
-            event = RtdbEvent(
-                event=EventType[message.event],
-                path=message.data["path"],
-                data=message.data["data"],
-            )
-            on_event(event)
+            if message.data is None:
+                event = RtdbEvent(event=EventType(message.event))
+            else:
+                event = RtdbEvent(
+                    event=EventType(message.event),
+                    path=message.data["path"],
+                    data=message.data["data"],
+                )
+
+            await events.put(event)
 
         async with SseClient(
             url=urljoin(self._rtdb.database_url, self.json_url),
@@ -306,7 +311,7 @@ class RtdbNode:
             params=self.params,
             on_message=on_message,
         ):
-            yield None
+            yield events
 
 
 @runtime_checkable
@@ -325,10 +330,7 @@ class RtdbEvent:
     event: EventType
 
     #: Path of the event, relative to the listener
-    path: str
+    path: Optional[str] = None
 
     #: Body of the event, either the new or updated values
-    data: JSON
-
-    #: Time the event was received (UTC, with tzinfo)
-    time_received: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+    data: Optional[JSON] = None

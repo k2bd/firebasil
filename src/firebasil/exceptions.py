@@ -28,7 +28,7 @@ class RtdbRequestException(RtdbException):
     """
 
 
-class RtdbListenerConnectionException(RtdbException):
+class RtdbEventStreamException(RtdbException):
     """
     Error connecting to the RTDB Listener
     """
