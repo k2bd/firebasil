@@ -35,43 +35,42 @@ _B = TypeVar("_B", bound=_Base)
 
 PRODUCTION_IDENTITY_TOOLKIT_URL = "https://identitytoolkit.googleapis.com/v1/"
 
-
-TOKEN_ROUTE = "token"
 ACCOUNTS_ROUTE = "accounts"
-SIGN_UP_ROUTE = ACCOUNTS_ROUTE + ":signUp"
-SIGN_IN_PASSWORD_ROUTE = ACCOUNTS_ROUTE + ":signInWithPassword"
-SIGN_IN_OAUTH_ROUTE = ACCOUNTS_ROUTE + ":signInWithIdp"
 CREATE_AUTH_URI_ROUTE = ACCOUNTS_ROUTE + ":createAuthUri"
-SEND_RESET_PASSWORD_ROUTE = ACCOUNTS_ROUTE + ":sendOobCode"
+DELETE_ACCOUNT_ROUTE = ACCOUNTS_ROUTE + ":delete"
+OUT_OF_BAND_CODES_ROUTE = ACCOUNTS_ROUTE + ":sendOobCode"
 RESET_PASSWORD_CODE_ROUTE = ACCOUNTS_ROUTE = ":resetPassword"
+SIGN_IN_OAUTH_ROUTE = ACCOUNTS_ROUTE + ":signInWithIdp"
+SIGN_IN_PASSWORD_ROUTE = ACCOUNTS_ROUTE + ":signInWithPassword"
+SIGN_UP_ROUTE = ACCOUNTS_ROUTE + ":signUp"
+TOKEN_ROUTE = "token"
 UPDATE_ACCOUNT_ROUTE = ACCOUNTS_ROUTE = ":update"
 USER_DATA_ROUTE = ACCOUNTS_ROUTE + ":lookup"
-DELETE_ACCOUNT_ROUTE = ACCOUNTS_ROUTE + ":delete"
 
 API_KEY_PARAM = "key"
+CONTINUE_URI_PARAM = "continueUri"
+DELETE_ATTRIBUTE_PARAM = "deleteAttribute"
+DELETE_PROVIDER_PARAM = "deleteProvider"
+DISPLAY_NAME_PARAM = "displayName"
 EMAIL_PARAM = "email"
 GRANT_TYPE_PARAM = "grant_type"
+ID_TOKEN_PARAM = "idToken"
 IDENTIFIER_PARAM = "identifier"
+NEW_PASSWORD_PARAM = "newPassword"
+OUT_OF_BAND_CODE_PARAM = "oobCode"
 PASSWORD_PARAM = "password"
+PHOTO_URL_PARAM = "photoUrl"
 POST_BODY_PARAM = "postBody"
-CONTINUE_URI_PARAM = "continueUri"
 REFRESH_TOKEN_PARAM = "refresh_token"
 REQUEST_TYPE_PARAM = "requestType"
-DELETE_PROVIDER_PARAM = "deleteProvider"
 REQUEST_URI_PARAM = "requestUri"
 RETURN_IDP_CREDENTIAL_PARAM = "returnIdpCredential"
 RETURN_SECURE_TOKEN_PARAM = "returnSecureToken"
 TOKEN_PARAM = "token"
-RESET_CODE_PARAM = "oobCode"
-NEW_PASSWORD_PARAM = "newPassword"
-ID_TOKEN_PARAM = "idToken"
-DISPLAY_NAME_PARAM = "displayName"
-PHOTO_URL_PARAM = "photoUrl"
-DELETE_ATTRIBUTE_PARAM = "deleteAttribute"
 
 PASSWORD_RESET_REQUEST_TYPE = "PASSWORD_RESET"
-VERIFY_EMAIL_REQUEST_TYPE = "VERIFY_EMAIL"
 REFRESH_TOKEN_GRANT_TYPE = "refresh_token"
+VERIFY_EMAIL_REQUEST_TYPE = "VERIFY_EMAIL"
 
 DISPLAY_NAME_DELETE_VALUE = "DISPLAY_NAME"
 PHOTO_URL_DELETE_VALUE = "PHOTO_URL"
@@ -98,14 +97,14 @@ class Auth:
 
     ```python
     async with Auth(...) as auth_client:
-        user_token = await auth_client.sign_in_with_custom_token(key=...)
+        user = await auth_client.sign_in_with_custom_token(key=...)
     ```
     """
 
     #: URL of the identity toolkit to use
     identity_toolkit_url: str = PRODUCTION_IDENTITY_TOOLKIT_URL
 
-    #: API key to use in requests
+    #: Optional API key to use in requests
     api_key: Optional[str] = None
 
     session: aiohttp.ClientSession = field(
@@ -139,8 +138,14 @@ class Auth:
             raise AuthRequestException(msg) from e
 
     async def _post(
-        self, route: str, body: JSON, headers: Optional[Dict[str, str]] = None
+        self,
+        route: str,
+        body: JSON,
+        headers: Optional[Dict[str, str]] = None,
     ) -> JSON:
+        """
+        Post, and return the JSON or raise for an error code.
+        """
         headers = headers or {}
         async with self.session.post(
             route,
@@ -172,6 +177,9 @@ class Auth:
             raise TypeError(f"Got unexpected response {type(result)}: {result}")
 
     async def sign_in_with_custom_token(self, token: str):
+        """
+        Sign a user in with a custom token.
+        """
         body = {TOKEN_PARAM: token, **return_secure_token()}
         return await self._post_model(
             route=ACCOUNTS_ROUTE,
@@ -181,7 +189,7 @@ class Auth:
 
     async def refresh(self, refresh_token: str):
         """
-        Trade a refresh token for a new ID token
+        Trade a refresh token for a new ID token.
         """
         body = {
             REFRESH_TOKEN_PARAM: refresh_token,
@@ -195,7 +203,7 @@ class Auth:
 
     async def sign_up(self, email: str, password: str):
         """
-        Sign up a new user
+        Sign up a new user.
         """
         body = {EMAIL_PARAM: email, PASSWORD_PARAM: password, **return_secure_token()}
         return await self._post_model(
@@ -206,7 +214,7 @@ class Auth:
 
     async def sign_in_with_password(self, email: str, password: str):
         """
-        Sign in with email and password
+        Sign in with email and password.
         """
         body = {EMAIL_PARAM: email, PASSWORD_PARAM: password, **return_secure_token()}
         return await self._post_model(
@@ -217,7 +225,7 @@ class Auth:
 
     async def sign_in_anonymous(self):
         """
-        Sign in anonymously
+        Sign in anonymously.
         """
         body = return_secure_token()
         return await self._post_model(
@@ -234,7 +242,7 @@ class Auth:
         return_idp_credential: bool,
     ):
         """
-        Sign in with an OAuth credential
+        Sign in with an OAuth credential.
         """
         body = {
             REQUEST_URI_PARAM: request_uri,
@@ -252,7 +260,7 @@ class Auth:
 
     async def get_associated_providers(self, email: str, continue_uri: str):
         """
-        Get OAuth providers associated with a given email
+        Get OAuth providers associated with a given email.
         """
         body = {IDENTIFIER_PARAM: email, CONTINUE_URI_PARAM: continue_uri}
         return await self._post_model(
@@ -271,7 +279,7 @@ class Auth:
         body = {REQUEST_TYPE_PARAM: PASSWORD_RESET_REQUEST_TYPE, EMAIL_PARAM: email}
         headers = {LOCALE_HEADER: locale} if locale else None
         return await self._post_model(
-            route=SEND_RESET_PASSWORD_ROUTE,
+            route=OUT_OF_BAND_CODES_ROUTE,
             body=body,
             headers=headers,
             model=ResetResponse,
@@ -281,7 +289,7 @@ class Auth:
         """
         Verify the code sent via a password reset email.
         """
-        body = {RESET_CODE_PARAM: reset_code}
+        body = {OUT_OF_BAND_CODE_PARAM: reset_code}
         return await self._post_model(
             route=RESET_PASSWORD_CODE_ROUTE,
             body=body,
@@ -292,7 +300,7 @@ class Auth:
         """
         Set a new password after the reset code is confirmed.
         """
-        body = {RESET_CODE_PARAM: reset_code, NEW_PASSWORD_PARAM: new_password}
+        body = {OUT_OF_BAND_CODE_PARAM: reset_code, NEW_PASSWORD_PARAM: new_password}
         return await self._post_model(
             route=RESET_PASSWORD_CODE_ROUTE,
             body=body,
@@ -348,7 +356,7 @@ class Auth:
         delete_photo: bool = False,
     ):
         """
-        Update or remove a user's display name and/or photo
+        Update or remove a user's display name and/or photo.
         """
         body: Dict[str, Any] = {ID_TOKEN_PARAM: id_token, **return_secure_token()}
         if display_name:
@@ -371,7 +379,7 @@ class Auth:
 
     async def get_user_data(self, id_token: str):
         """
-        Get information about a user
+        Get information about a user.
         """
         body = {ID_TOKEN_PARAM: id_token}
         return await self._post_model(
@@ -384,7 +392,7 @@ class Auth:
         self, id_token: str, email: str, password: str
     ):
         """
-        Associate an email and password with a given user
+        Associate an email and password with a given user.
         """
         body = {
             ID_TOKEN_PARAM: id_token,
@@ -426,7 +434,7 @@ class Auth:
 
     async def unlink_provider(self, id_token: str, provider_ids: List[str]):
         """
-        Unlink an account from the given provider IDs
+        Unlink an account from the given provider IDs.
         """
         body = {ID_TOKEN_PARAM: id_token, DELETE_PROVIDER_PARAM: provider_ids}
         return await self._post_model(
@@ -447,7 +455,7 @@ class Auth:
         body = {ID_TOKEN_PARAM: id_token, REQUEST_TYPE_PARAM: VERIFY_EMAIL_REQUEST_TYPE}
         headers = {LOCALE_HEADER: locale} if locale else None
         return await self._post_model(
-            route=SEND_RESET_PASSWORD_ROUTE,
+            route=OUT_OF_BAND_CODES_ROUTE,
             body=body,
             headers=headers,
             model=SendEmailVerificationResponse,
@@ -457,7 +465,7 @@ class Auth:
         """
         Confirm the email verification code sent to the user.
         """
-        body = {RESET_CODE_PARAM: code}
+        body = {OUT_OF_BAND_CODE_PARAM: code}
         return await self._post_model(
             route=UPDATE_ACCOUNT_ROUTE,
             body=body,
@@ -465,8 +473,13 @@ class Auth:
         )
 
     async def delete_account(self, id_token: str) -> None:
+        """
+        Delete an account.
+        """
         body = {ID_TOKEN_PARAM: id_token}
         await self._post(
             route=DELETE_ACCOUNT_ROUTE,
             body=body,
         )
+
+    # TODO: Emulator-specific routes
