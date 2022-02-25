@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import List
 
 
@@ -17,11 +17,11 @@ class _WithUserBasic(_Base):
     refresh_token: str
 
     #: Seconds until the token expires, as of time of issue
-    expires_in: int
+    expires_in: timedelta
 
     def __post_init__(self):
         super().__post_init__()
-        self.expires_in = int(self.expires_in)
+        self.expires_in = timedelta(seconds=float(self.expires_in))
 
 
 @dataclass
@@ -358,9 +358,13 @@ class UserInfoItem(
 
 
 @dataclass
-class AccountInfo:
+class AccountInfo(_Base):
     #: The account associated with the given Firebase ID token.
     users: List[UserInfoItem]
+
+    def __post_init__(self):
+        super().__post_init__()
+        self.users = [UserInfoItem(**user) for user in self.users]
 
 
 @dataclass
@@ -428,3 +432,52 @@ class ConfirmEmailVerificationResponse(
     _WithEmailVerified,
 ):
     pass
+
+
+# --- Emulator-only types
+
+
+@dataclass
+class EmulatorSignInObject(_Base):
+    allow_duplicate_emails: bool
+
+
+@dataclass
+class EmulatorConfigurtion(_Base):
+    sign_in: EmulatorSignInObject
+
+    def __post_init__(self):
+        super().__post_init__()
+        self.sign_in = EmulatorSignInObject(**self.sign_in)
+
+
+@dataclass
+class EmulatorOobCode(_Base):
+    email: str
+    oob_code: str
+    oob_link: str
+    request_type: str
+
+
+@dataclass
+class EmulatorOobCodes(_Base):
+    oob_codes: List[EmulatorOobCode]
+
+    def __post_init__(self):
+        super().__post_init__()
+        self.oob_codes = [EmulatorOobCode(**oob_code) for oob_code in self.oob_codes]
+
+
+@dataclass
+class EmulatorSmsCode(_Base):
+    phone_number: str
+    session_code: str
+
+
+@dataclass
+class EmulatorSmsCodes(_Base):
+    verification_codes: List[EmulatorSmsCode]
+
+    def __post_init__(self):
+        super().__post_init__()
+        self.sms_codes = [EmulatorSmsCode(**sms_code) for sms_code in self.sms_codes]
