@@ -10,7 +10,7 @@ from typing import Any, AsyncGenerator, Dict, Optional
 from urllib.parse import urljoin
 
 import aiohttp
-from typing_extensions import Protocol, Self, runtime_checkable
+from typing_extensions import Protocol, runtime_checkable
 
 from firebasil.exceptions import RtdbRequestException
 from firebasil.sse.sse_client import SseClient, SseMessage
@@ -208,7 +208,7 @@ class RtdbNode:
             self._handle_request_error(response)
             return await response.json()
 
-    def _copy_with_params(self, **kwargs) -> Self:
+    def _copy_with_params(self, **kwargs) -> RtdbNode:
         query_params = {**(self.query_params or {})}
         query_params.update(kwargs)
         return type(self)(
@@ -217,7 +217,7 @@ class RtdbNode:
             query_params=query_params,
         )
 
-    def order_by_key(self) -> Self:
+    def order_by_key(self) -> RtdbNode:
         """
         Order filtering operations by key.
 
@@ -228,7 +228,7 @@ class RtdbNode:
         """  # noqa: E501
         return self.order_by(ORDER_BY_KEY)
 
-    def order_by_value(self) -> Self:
+    def order_by_value(self) -> RtdbNode:
         """
         Order filtering operations by node value.
 
@@ -239,7 +239,7 @@ class RtdbNode:
         """  # noqa: E501
         return self.order_by(ORDER_BY_VALUE)
 
-    def order_by_priority(self) -> Self:
+    def order_by_priority(self) -> RtdbNode:
         """
         Order filtering operations by priority.
 
@@ -250,7 +250,7 @@ class RtdbNode:
         """  # noqa: E501
         return self.order_by(ORDER_BY_PRIORITY)
 
-    def order_by(self, child_location: str) -> Self:
+    def order_by(self, child_location: str) -> RtdbNode:
         """
         Order filtering operations by the value of a specified (possibly
         nested) child node.
@@ -262,7 +262,7 @@ class RtdbNode:
         """  # noqa: E501
         return self._copy_with_params(orderBy=f'"{child_location}"')
 
-    def limit_to_first(self, limit: int) -> Self:
+    def limit_to_first(self, limit: int) -> RtdbNode:
         """
         Only return the first ``limit`` results after some ordering and
         filtering is applied.
@@ -271,14 +271,14 @@ class RtdbNode:
         """  # noqa: E501
         return self._copy_with_params(limitToFirst=str(limit))
 
-    def limit_to_last(self, limit: int) -> Self:
+    def limit_to_last(self, limit: int) -> RtdbNode:
         """
         Only return the last ``limit`` results after some ordering and
         filtering is applied.
         """
         return self._copy_with_params(limitToLast=str(limit))
 
-    def start_at(self, value: Any) -> Self:
+    def start_at(self, value: Any) -> RtdbNode:
         """
         Return values starting at ``value`` under some ordering.
 
@@ -288,7 +288,7 @@ class RtdbNode:
             startAt=f'"{value}"' if isinstance(value, str) else value
         )
 
-    def end_at(self, value: Any) -> Self:
+    def end_at(self, value: Any) -> RtdbNode:
         """
         Return values ending at ``value`` under some ordering.
 
@@ -298,7 +298,7 @@ class RtdbNode:
             endAt=f'"{value}"' if isinstance(value, str) else value
         )
 
-    def equal_to(self, value: Any) -> Self:
+    def equal_to(self, value: Any) -> RtdbNode:
         """
         Return values with value equal to ``value`` under some ordering.
 
@@ -308,7 +308,7 @@ class RtdbNode:
             equalTo=f'"{value}"' if isinstance(value, str) else value
         )
 
-    def shallow(self) -> Self:
+    def shallow(self) -> RtdbNode:
         """
         Create a node that only gets shallow data
 
@@ -316,7 +316,7 @@ class RtdbNode:
         """  # noqa: E501
         return self._copy_with_params(shallow="true")
 
-    def export_format(self) -> Self:
+    def export_format(self) -> RtdbNode:
         """
         Include priority data in responses
 
@@ -324,7 +324,7 @@ class RtdbNode:
         """  # noqa: E501
         return self._copy_with_params(format=EXPORT_FORMAT)
 
-    def timeout(self, timeout: timedelta) -> Self:
+    def timeout(self, timeout: timedelta) -> RtdbNode:
         """
         Set a request timeout.
 
@@ -333,7 +333,7 @@ class RtdbNode:
         timeout_str = f"{timeout.total_seconds()}s"
         return self._copy_with_params(timeout=timeout_str)
 
-    def write_size_limit(self, limit: SizeLimit) -> Self:
+    def write_size_limit(self, limit: SizeLimit) -> RtdbNode:
         """
         Limit write sizes.
 
@@ -347,24 +347,26 @@ class RtdbNode:
         Async context manager that listens to the event stream of this node and
         adds events to the async queue that it yields.
         """
-        events = asyncio.Queue()
+        events: asyncio.Queue[RtdbEvent] = asyncio.Queue()
 
         async def on_message(message: SseMessage):
             logger.info("Message: %s", message)
             if message.data is None:
                 event = RtdbEvent(event=EventType(message.event))
-            else:
+            elif isinstance(message.data, dict):
                 event = RtdbEvent(
                     event=EventType(message.event),
                     path=message.data["path"],
                     data=message.data["data"],
                 )
+            else:
+                raise ValueError(f"Could not parse event: {event}")
 
             await events.put(event)
 
         async with SseClient(
             url=urljoin(self._rtdb.database_url, self.json_url),
-            headers=self._rtdb.session.headers,
+            headers=dict(self._rtdb.session.headers),
             params=self.params,
             on_message=on_message,
         ):

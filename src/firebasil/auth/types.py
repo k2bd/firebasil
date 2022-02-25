@@ -214,27 +214,47 @@ class _WithCustomAuth(_Base):
 
 
 @dataclass
-class SignInWithTokenUser(_WithUserBasic):
+class SignInWithTokenUser(
+    _WithUserBasic,
+):
     pass
 
 
 @dataclass
-class RefreshUser(_WithUserBasic, _WithTokenType, _WithUserId, _WithProjectId):
+class RefreshUser(
+    _WithUserBasic,
+    _WithTokenType,
+    _WithUserId,
+    _WithProjectId,
+):
     pass
 
 
 @dataclass
-class SignUpUser(_WithUserBasic, _WithEmail, _WithLocalId):
+class SignUpUser(
+    _WithUserBasic,
+    _WithEmail,
+    _WithLocalId,
+):
     pass
 
 
 @dataclass
-class SignInWithPasswordUser(_WithUserBasic, _WithEmail, _WithLocalId, _WithRegistered):
+class SignInWithPasswordUser(
+    _WithUserBasic,
+    _WithEmail,
+    _WithLocalId,
+    _WithRegistered,
+):
     pass
 
 
 @dataclass
-class AnonymousUser(_WithUserBasic, _WithEmail, _WithLocalId):
+class AnonymousUser(
+    _WithUserBasic,
+    _WithEmail,
+    _WithLocalId,
+):
     pass
 
 
@@ -261,18 +281,25 @@ class SignInWithOauthUser(
 
 
 @dataclass
-class EmailProviders(_WithRegistered):
+class EmailProviders(
+    _WithRegistered,
+):
     #: The list of providers that the user has previously signed in with.
     all_providers: List[str]
 
 
 @dataclass
-class ResetResponse(_WithEmail):
+class ResetResponse(
+    _WithEmail,
+):
     pass
 
 
 @dataclass
-class VerifyResetResponse(_WithEmail, _WithRequestType):
+class VerifyResetResponse(
+    _WithEmail,
+    _WithRequestType,
+):
     pass
 
 
@@ -385,7 +412,9 @@ class UnlinkProviderResponse(
 
 
 @dataclass
-class SendEmailVerificationResponse(_WithEmail):
+class SendEmailVerificationResponse(
+    _WithEmail,
+):
     pass
 
 
