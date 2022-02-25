@@ -23,7 +23,7 @@ class SseMessage:
 
 @runtime_checkable
 class OnMessage(Protocol):
-    def __call__(self, event: SseMessage) -> Awaitable[None]:
+    def __call__(self, message: SseMessage) -> Awaitable[None]:
         ...
 
 
