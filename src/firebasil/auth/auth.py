@@ -145,7 +145,7 @@ class Auth:
 
     async def __aenter__(self):
         self.session = self._session(
-            base_url=urljoin(self.identity_toolkit_url, VERSION_ONE_API_ROUTE)
+            base_url=urljoin(self.identity_toolkit_url, VERSION_ONE_API_ROUTE),
         )
         return self
 
@@ -269,7 +269,8 @@ class Auth:
         body = {
             REQUEST_URI_PARAM: request_uri,
             POST_BODY_PARAM: post_body(
-                id_token=provider_token, provider_id=provider_id
+                id_token=provider_token,
+                provider_id=provider_id,
             ),
             **return_secure_token(),
             RETURN_IDP_CREDENTIAL_PARAM: return_idp_credential,
@@ -466,7 +467,9 @@ class Auth:
         )
 
     async def send_email_verification(
-        self, id_token: str, locale: Optional[str] = None
+        self,
+        id_token: str,
+        locale: Optional[str] = None,
     ):
         """
         Send an email confirmation email to a user.
