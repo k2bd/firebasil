@@ -446,6 +446,8 @@ class EmulatorSignInObject(_Base):
 class EmulatorConfigurtion(_Base):
     sign_in: EmulatorSignInObject
 
+    usage_mode: str
+
     def __post_init__(self):
         super().__post_init__()
         self.sign_in = EmulatorSignInObject(**self.sign_in)

@@ -1,7 +1,6 @@
 import logging
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional, Type, TypeVar
-from urllib.parse import urljoin
 
 import aiohttp
 from stringcase import snakecase
@@ -38,18 +37,19 @@ logger = logging.getLogger(__name__)
 _B = TypeVar("_B", bound=_Base)
 
 PRODUCTION_IDENTITY_TOOLKIT_URL = "https://identitytoolkit.googleapis.com/"
-VERSION_ONE_API_ROUTE = "v1"
+VERSION_ONE_BASE_ROUTE = "/v1"
+EMULATOR_BASE_ROUTE = "/emulator" + VERSION_ONE_BASE_ROUTE
 
-ACCOUNTS_ROUTE = "accounts"
+ACCOUNTS_ROUTE = "/accounts"
 CREATE_AUTH_URI_ROUTE = ACCOUNTS_ROUTE + ":createAuthUri"
 DELETE_ACCOUNT_ROUTE = ACCOUNTS_ROUTE + ":delete"
 OUT_OF_BAND_CODES_ROUTE = ACCOUNTS_ROUTE + ":sendOobCode"
-RESET_PASSWORD_CODE_ROUTE = ACCOUNTS_ROUTE = ":resetPassword"
+RESET_PASSWORD_CODE_ROUTE = ACCOUNTS_ROUTE + ":resetPassword"
 SIGN_IN_OAUTH_ROUTE = ACCOUNTS_ROUTE + ":signInWithIdp"
 SIGN_IN_PASSWORD_ROUTE = ACCOUNTS_ROUTE + ":signInWithPassword"
 SIGN_UP_ROUTE = ACCOUNTS_ROUTE + ":signUp"
-TOKEN_ROUTE = "token"
-UPDATE_ACCOUNT_ROUTE = ACCOUNTS_ROUTE = ":update"
+TOKEN_ROUTE = "/token"
+UPDATE_ACCOUNT_ROUTE = ACCOUNTS_ROUTE + ":update"
 USER_DATA_ROUTE = ACCOUNTS_ROUTE + ":lookup"
 
 API_KEY_PARAM = "key"
@@ -108,18 +108,22 @@ def post_body(id_token: str, provider_id: str):
 
 
 @dataclass
-class Auth:
+class AuthClient:
     """
     A connection to Firebase auth. Should be used as an async context manager.
 
     ```python
-    async with Auth(...) as auth_client:
+    async with AuthClient(...) as auth_client:
         user = await auth_client.sign_in_with_custom_token(key=...)
     ```
     """
 
     #: URL of the identity toolkit to use
     identity_toolkit_url: str = PRODUCTION_IDENTITY_TOOLKIT_URL
+
+    #: Base route for auth operations. "/v1" in prod, or "/emulator/v1" on the
+    #: emulator.
+    base_route: str = VERSION_ONE_BASE_ROUTE
 
     #: Optional API key to use in requests
     api_key: Optional[str] = None
@@ -135,17 +139,11 @@ class Auth:
     def params(self):
         return {API_KEY_PARAM: self.api_key} if self.api_key else {}
 
-    @staticmethod
-    def _session(base_url: str):
-        headers = {"Content-Type": "application/json"}
-        return aiohttp.ClientSession(
-            base_url=base_url,
-            headers=headers,
-        )
-
     async def __aenter__(self):
-        self.session = self._session(
-            base_url=urljoin(self.identity_toolkit_url, VERSION_ONE_API_ROUTE),
+        headers = {"Content-Type": "application/json"}
+        self.session = aiohttp.ClientSession(
+            base_url=self.identity_toolkit_url,
+            headers=headers,
         )
         return self
 
@@ -170,7 +168,7 @@ class Auth:
         """
         headers = headers or {}
         async with self.session.post(
-            route,
+            self.base_route + route,
             params=self.params,
             json=body,
             headers=headers,
@@ -509,18 +507,14 @@ class Auth:
 
     # -- Emulator methods
 
-    def _emulator_session(self):
-        emulator_route = urljoin(self.identity_toolkit_url, "emulator")
-        return self._session(base_url=urljoin(emulator_route, VERSION_ONE_API_ROUTE))
-
     async def emulator_clear_accounts(self, project_id: str):
         """
         Remove all user accounts.
 
         Only available for the auth emulator.
         """
-        async with self._emulator_session().delete(
-            f"projects/{project_id}/accounts",
+        async with self.session.delete(
+            f"{self.base_route}/projects/{project_id}/accounts",
         ) as response:
             self._handle_request_error(response)
 
@@ -530,12 +524,12 @@ class Auth:
 
         Only available for the auth emulator.
         """
-        async with self._emulator_session().get(
-            f"projects/{project_id}/config",
+        async with self.session.get(
+            f"{self.base_route}/projects/{project_id}/config",
         ) as response:
             self._handle_request_error(response)
             result = await response.json()
-            EmulatorConfigurtion(**snakeify_dict_keys(result))
+            return EmulatorConfigurtion(**snakeify_dict_keys(result))
 
     async def emulator_update_configuration(
         self, project_id: str, allow_duplicate_emails: bool
@@ -546,13 +540,13 @@ class Auth:
         Only available for the auth emulator.
         """
         body = {"signIn": {"allowDuplicateEmails": allow_duplicate_emails}}
-        async with self._emulator_session().patch(
-            f"projects/{project_id}/config",
+        async with self.session.patch(
+            f"{self.base_route}/projects/{project_id}/config",
             body=body,
         ) as response:
             self._handle_request_error(response)
             result = await response.json()
-            EmulatorConfigurtion(**snakeify_dict_keys(result))
+            return EmulatorConfigurtion(**snakeify_dict_keys(result))
 
     async def emulator_get_out_of_band_codes(self, project_id: str):
         """
@@ -560,12 +554,12 @@ class Auth:
 
         Only available for the auth emulator.
         """
-        async with self._emulator_session().get(
-            f"projects/{project_id}/oobCodes",
+        async with self.session.get(
+            f"{self.base_route}/projects/{project_id}/oobCodes",
         ) as response:
             self._handle_request_error(response)
             result = await response.json()
-            EmulatorOobCodes(**snakeify_dict_keys(result))
+            return EmulatorOobCodes(**snakeify_dict_keys(result))
 
     async def emulator_get_sms_codes(self, project_id: str):
         """
@@ -573,9 +567,9 @@ class Auth:
 
         Only available for the auth emulator.
         """
-        async with self._emulator_session().get(
-            f"projects/{project_id}/verificationCodes",
+        async with self.session.get(
+            f"{self.base_route}/projects/{project_id}/verificationCodes",
         ) as response:
             self._handle_request_error(response)
             result = await response.json()
-            EmulatorSmsCodes(**snakeify_dict_keys(result))
+            return EmulatorSmsCodes(**snakeify_dict_keys(result))
