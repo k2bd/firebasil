@@ -33,6 +33,7 @@ from firebasil.auth.types import (
 )
 from firebasil.exceptions import AuthRequestException
 from firebasil.types import JSON
+from firebasil.warnings import experimental
 
 logger = logging.getLogger(__name__)
 
@@ -139,7 +140,7 @@ def default_secure_token_url():
 
 
 def default_use_emulator_routes():
-    return FIREBASE_AUTH_EMULATOR_HOST
+    return bool(FIREBASE_AUTH_EMULATOR_HOST)
 
 
 @dataclass
@@ -148,7 +149,7 @@ class AuthClient:
     A connection to Firebase auth. Should be used as an async context manager.
 
     ```python
-    async with AuthClient(...) as auth_client:
+    async with AuthClient(api_key=...) as auth_client:
         user = await auth_client.sign_in_with_custom_token(key=...)
     ```
 
@@ -156,17 +157,25 @@ class AuthClient:
     change the defaults of this class to use the emulator endpoint and routes.
     """
 
-    #: URL of the identity toolkit to use
+    #: API key
+    api_key: str
+
+    #: URL of the identity toolkit to use.
+    #: Defaults to the production value unless the
+    #: ``FIREBASE_AUTH_EMULATOR_HOST`` environment variable is set, when it
+    #: will use that value.
     identity_toolkit_url: str = field(default_factory=default_identity_toolkit_url)
 
     #: URL of the secure token endpoint to use
+    #: Defaults to the production value unless the
+    #: ``FIREBASE_AUTH_EMULATOR_HOST`` environment variable is set, when it
+    #: will use that value.
     secure_token_url: str = field(default_factory=default_secure_token_url)
 
     #: Whether to use emulator routes
+    #: Defaults to False unless the ``FIREBASE_AUTH_EMULATOR_HOST`` environment
+    #: variable is set.
     use_emulator_routes: bool = field(default_factory=default_use_emulator_routes)
-
-    #: Optional API key to use in requests
-    api_key: Optional[str] = None
 
     session: aiohttp.ClientSession = field(
         init=False,
@@ -216,6 +225,7 @@ class AuthClient:
 
     async def __aexit__(self, *err):
         await self.session.close()
+        await self.token_session.close()
 
     def _handle_request_error(self, response: aiohttp.ClientResponse):
         try:
@@ -290,23 +300,6 @@ class AuthClient:
             REFRESH_TOKEN_PARAM: refresh_token,
             GRANT_TYPE_PARAM: REFRESH_TOKEN_GRANT_TYPE,
         }
-        # async with aiohttp.request(
-        #     url=self.secure_token_url
-        #     + "/securetoken.googleapis.com"
-        #     + VERSION_ONE_BASE_ROUTE
-        #     + TOKEN_ROUTE,
-        #     method="POST",
-        #     params=self.params,
-        #     json=body,
-        #     headers={"Content-Type": "application/json"},
-        # ) as response:
-        #     self._handle_request_error(response)
-        #     result = await response.json()
-        #     if isinstance(result, dict):
-        #         return RefreshUser(**snakeify_dict_keys(result))
-        #     else:
-        #         raise TypeError(f"Got unexpected response {type(result)}: {result}")
-        #     # return await response.json()
         return await self._post_model(
             route=TOKEN_ROUTE,
             body=body,
@@ -348,6 +341,7 @@ class AuthClient:
             model=AnonymousUser,
         )
 
+    @experimental("OAuth support is currently experimental.")
     async def sign_in_with_oauth(
         self,
         request_uri: str,
@@ -521,6 +515,7 @@ class AuthClient:
             model=LinkAccountEmailResponse,
         )
 
+    @experimental("OAuth support is currently experimental.")
     async def link_account_with_oauth_credential(
         self,
         id_token: str,
@@ -547,6 +542,7 @@ class AuthClient:
             model=LinkAccountOauthResponse,
         )
 
+    @experimental("OAuth support is currently experimental.")
     async def unlink_provider(self, id_token: str, provider_ids: List[str]):
         """
         Unlink an account from the given provider IDs.

@@ -5,15 +5,17 @@ import pytest
 
 from firebasil.auth import AuthClient
 from firebasil.auth.constants import FIREBASE_AUTH_EMULATOR_HOST
+from firebasil.auth.types import SignUpUser
 from firebasil.rtdb import Rtdb, RtdbNode
 from tests.integration.constants import (
+    EXAMPLE_USER_PASSWORD,
     TESTING_DATABASE_URL,
     TESTING_PROJECT_ID,
 )
 from firebase_admin import initialize_app, delete_app, App
 
 # Initialize the admin app once
-_admin_app = initialize_app(options={"projectId": "demo-firebasil-test"})
+_admin_app = initialize_app(options={"projectId": TESTING_PROJECT_ID})
 
 
 @pytest.fixture
@@ -44,6 +46,15 @@ async def auth_client() -> AsyncGenerator[AuthClient, None]:
                 TESTING_PROJECT_ID,
                 initial_settings.sign_in.allow_duplicate_emails,
             )
+
+
+@pytest.fixture
+async def example_user(auth_client: AuthClient) -> SignUpUser:
+    """
+    Create a user with a random email
+    """
+    user_email = str(uuid4()) + "@k2bd.dev"
+    return await auth_client.sign_up(user_email, EXAMPLE_USER_PASSWORD)
 
 
 @pytest.fixture

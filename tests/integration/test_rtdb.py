@@ -81,8 +81,7 @@ async def test_order_by_key(rtdb_root: RtdbNode):
     }
 
 
-# See k2bd/firebasil#6
-@pytest.mark.xfail
+@pytest.mark.xfail  # See k2bd/firebasil#6
 @pytest.mark.asyncio
 async def test_order_by_value(rtdb_root: RtdbNode):
     """
@@ -107,8 +106,7 @@ async def test_order_by_value(rtdb_root: RtdbNode):
     }
 
 
-# See k2bd/firebasil#6
-@pytest.mark.xfail
+@pytest.mark.xfail  # See k2bd/firebasil#6
 @pytest.mark.asyncio
 async def test_order_by_child(rtdb_root: RtdbNode):
     """

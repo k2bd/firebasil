@@ -11,9 +11,6 @@ class _Base:
 
 @dataclass
 class _WithUserBasic(_Base):
-    #: Response kind, sent by gcloud
-    kind: str
-
     #: ID token
     id_token: str
 
@@ -21,7 +18,7 @@ class _WithUserBasic(_Base):
     refresh_token: str
 
     #: Seconds until the token expires, as of time of issue
-    expires_in: Optional[timedelta] = None
+    expires_in: Optional[timedelta]
 
     def __post_init__(self):
         super().__post_init__()
@@ -30,10 +27,20 @@ class _WithUserBasic(_Base):
 
 
 @dataclass
+class _WithResponseKind(_Base):
+    #: Response kind, sent by gcloud
+    kind: str
+
+@dataclass
 class _WithIsNewUser(_Base):
     #: Whether the token is issued to a new user
     is_new_user: bool
 
+
+@dataclass
+class _WithAccessToken(_Base):
+    #: Access token
+    access_token: str
 
 @dataclass
 class _WithTokenType(_Base):
@@ -141,13 +148,13 @@ class _WithFullName(_Base):
 @dataclass
 class _WithDisplayName(_Base):
     #: The display name for the account.
-    display_name: str
+    display_name: Optional[str] = None
 
 
 @dataclass
 class _WithPhotoUrl(_Base):
     #: The photo Url for the account.
-    photo_url: str
+    photo_url: Optional[str] = None
 
 
 @dataclass
@@ -228,6 +235,7 @@ class _WithCustomAuth(_Base):
 class SignInWithTokenUser(
     _WithUserBasic,
     _WithIsNewUser,
+    _WithResponseKind,
 ):
     pass
 
@@ -238,6 +246,7 @@ class RefreshUser(
     _WithTokenType,
     _WithUserId,
     _WithProjectId,
+    _WithAccessToken,
 ):
     pass
 
@@ -247,6 +256,7 @@ class SignUpUser(
     _WithUserBasic,
     _WithEmail,
     _WithLocalId,
+    _WithResponseKind,
 ):
     pass
 
@@ -254,6 +264,7 @@ class SignUpUser(
 @dataclass
 class SignInWithPasswordUser(
     _WithUserBasic,
+    _WithResponseKind,
     _WithEmail,
     _WithLocalId,
     _WithRegistered,
@@ -264,7 +275,7 @@ class SignInWithPasswordUser(
 @dataclass
 class AnonymousUser(
     _WithUserBasic,
-    _WithEmail,
+    _WithResponseKind,
     _WithLocalId,
 ):
     pass
@@ -272,7 +283,10 @@ class AnonymousUser(
 
 @dataclass
 class SignInWithOauthUser(
+    _WithDisplayName,
+    _WithPhotoUrl,
     _WithUserBasic,
+    _WithResponseKind,
     _WithFederatedId,
     _WithProviderId,
     _WithLocalId,
@@ -285,8 +299,6 @@ class SignInWithOauthUser(
     _WithFirstName,
     _WithLastName,
     _WithFullName,
-    _WithDisplayName,
-    _WithPhotoUrl,
     _WithNeedConfirmation,
 ):
     pass
@@ -303,6 +315,7 @@ class EmailProviders(
 @dataclass
 class ResetResponse(
     _WithEmail,
+    _WithResponseKind,
 ):
     pass
 
@@ -311,6 +324,7 @@ class ResetResponse(
 class VerifyResetResponse(
     _WithEmail,
     _WithRequestType,
+    _WithResponseKind,
 ):
     pass
 
@@ -318,10 +332,12 @@ class VerifyResetResponse(
 @dataclass
 class ChangeEmailResponse(
     _WithUserBasic,
+    _WithResponseKind,
     _WithLocalId,
     _WithEmail,
     _WithPasswordHash,
     _WithProviderUserInfo,
+    _WithEmailVerified,
 ):
     pass
 
@@ -329,35 +345,38 @@ class ChangeEmailResponse(
 @dataclass
 class ChangePasswordResponse(
     _WithUserBasic,
+    _WithResponseKind,
     _WithLocalId,
     _WithEmail,
     _WithPasswordHash,
     _WithProviderUserInfo,
+    _WithEmailVerified,
 ):
     pass
 
 
 @dataclass
 class UpdateProfileResponse(
-    _WithUserBasic,
-    _WithLocalId,
-    _WithEmail,
     _WithDisplayName,
     _WithPhotoUrl,
+    _WithResponseKind,
+    _WithLocalId,
+    _WithEmail,
     _WithPasswordHash,
     _WithProviderUserInfo,
+    _WithEmailVerified,
 ):
     pass
 
 
 @dataclass
 class UserInfoItem(
+    _WithDisplayName,
+    _WithPhotoUrl,
     _WithLocalId,
     _WithEmail,
     _WithEmailVerified,
-    _WithDisplayName,
     _WithProviderUserInfo,
-    _WithPhotoUrl,
     _WithPasswordHash,
     _WithPasswordUpdatedAt,
     _WithValidSince,
@@ -381,11 +400,12 @@ class AccountInfo(_Base):
 
 @dataclass
 class LinkAccountEmailResponse(
-    _WithUserBasic,
-    _WithLocalId,
-    _WithEmail,
     _WithDisplayName,
     _WithPhotoUrl,
+    _WithUserBasic,
+    _WithResponseKind,
+    _WithLocalId,
+    _WithEmail,
     _WithPasswordHash,
     _WithProviderUserInfo,
     _WithEmailVerified,
@@ -395,7 +415,10 @@ class LinkAccountEmailResponse(
 
 @dataclass
 class LinkAccountOauthResponse(
+    _WithDisplayName,
+    _WithPhotoUrl,
     _WithUserBasic,
+    _WithResponseKind,
     _WithFederatedId,
     _WithProviderId,
     _WithLocalId,
@@ -408,18 +431,16 @@ class LinkAccountOauthResponse(
     _WithFirstName,
     _WithLastName,
     _WithFullName,
-    _WithDisplayName,
-    _WithPhotoUrl,
 ):
     pass
 
 
 @dataclass
 class UnlinkProviderResponse(
-    _WithLocalId,
-    _WithEmail,
     _WithDisplayName,
     _WithPhotoUrl,
+    _WithLocalId,
+    _WithEmail,
     _WithPasswordHash,
     _WithProviderUserInfo,
     _WithEmailVerified,
@@ -436,9 +457,9 @@ class SendEmailVerificationResponse(
 
 @dataclass
 class ConfirmEmailVerificationResponse(
-    _WithEmail,
     _WithDisplayName,
     _WithPhotoUrl,
+    _WithEmail,
     _WithPasswordHash,
     _WithProviderUserInfo,
     _WithEmailVerified,
