@@ -30,6 +30,12 @@ class _WithUserBasic(_Base):
 
 
 @dataclass
+class _WithIsNewUser(_Base):
+    #: Whether the token is issued to a new user
+    is_new_user: bool
+
+
+@dataclass
 class _WithTokenType(_Base):
     #: Type of the token
     token_type: str
@@ -221,6 +227,7 @@ class _WithCustomAuth(_Base):
 @dataclass
 class SignInWithTokenUser(
     _WithUserBasic,
+    _WithIsNewUser,
 ):
     pass
 

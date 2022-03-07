@@ -1,7 +1,7 @@
 import pytest
 
 from firebasil.auth import AuthClient
-from firebasil.auth.types import SignInWithTokenUser, SignUpUser
+from firebasil.auth.types import RefreshUser, SignInWithTokenUser, SignUpUser
 from firebase_admin import auth as admin_auth, App
 from firebase_admin._user_mgt import UserRecord
 
@@ -24,6 +24,20 @@ async def test_sign_in_with_custom_token(auth_client: AuthClient, admin_app: App
     created_user: UserRecord = admin_auth.create_user()
     token: bytes = admin_auth.create_custom_token(created_user.uid)
 
-    user = await auth_client.sign_in_with_custom_token(token=token.decode("utf-8"))
+    signed_in_user = await auth_client.sign_in_with_custom_token(token=token.decode("utf-8"))
 
-    assert isinstance(user, SignInWithTokenUser)
+    assert isinstance(signed_in_user, SignInWithTokenUser)
+
+
+@pytest.mark.asyncio
+async def test_refresh_id_token(auth_client: AuthClient):
+    """
+    Can exchange a refresh token for a new ID token
+    """
+    created_user: UserRecord = admin_auth.create_user()
+    token: bytes = admin_auth.create_custom_token(created_user.uid)
+
+    signed_in = await auth_client.sign_in_with_custom_token(token=token.decode("utf-8"))
+
+    refreshed_user = await auth_client.refresh(refresh_token=signed_in.refresh_token)
+    assert isinstance(refreshed_user, RefreshUser)

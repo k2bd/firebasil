@@ -5,6 +5,7 @@ from typing import Any, Dict, List, Optional, Type, TypeVar
 
 import aiohttp
 from stringcase import snakecase
+from firebasil.auth.constants import FIREBASE_AUTH_EMULATOR_HOST
 
 from firebasil.auth.types import (
     AccountInfo,
@@ -37,10 +38,11 @@ logger = logging.getLogger(__name__)
 
 _B = TypeVar("_B", bound=_Base)
 
-PRODUCTION_IDENTITY_TOOLKIT_URL = "https://identitytoolkit.googleapis.com/"
-PRODUCTION_SECURE_TOKEN_URL = "https://securetoken.googleapis.com/"
+PRODUCTION_IDENTITY_TOOLKIT_URL = "https://identitytoolkit.googleapis.com"
+PRODUCTION_SECURE_TOKEN_URL = "https://securetoken.googleapis.com"
 VERSION_ONE_BASE_ROUTE = "/v1"
-EMULATOR_BASE_ROUTE = f"/identitytoolkit.googleapis.com{VERSION_ONE_BASE_ROUTE}"
+EMULATOR_ID_TOOLKIT_BASE_ROUTE_PREFIX = "/identitytoolkit.googleapis.com"
+EMULATOR_SECURE_TOKEN_BASE_ROUTE = "/securetoken.googleapis.com"
 
 CREATE_AUTH_URI_MODE = "createAuthUri"
 DELETE_ACCOUNT_MODE = "delete"
@@ -63,7 +65,9 @@ RESET_PASSWORD_CODE_ROUTE = f"{ACCOUNTS_ROUTE}:{RESET_PASSWORD_CODE_MODE}"  # no
 SIGN_IN_OAUTH_ROUTE = f"{ACCOUNTS_ROUTE}:{SIGN_IN_OAUTH_MODE}"  # noqa: E501
 SIGN_IN_PASSWORD_ROUTE = f"{ACCOUNTS_ROUTE}:{SIGN_IN_PASSWORD_MODE}"  # noqa: E501
 SIGN_UP_ROUTE = f"{ACCOUNTS_ROUTE}:{SIGN_UP_MODE}"  # noqa: E501
-SIGN_IN_WITH_CUSTOM_TOKEN_ROUTE = f"{ACCOUNTS_ROUTE}:{SIGN_IN_WITH_CUSTOM_TOKEN_MODE}"  # noqa: E501
+SIGN_IN_WITH_CUSTOM_TOKEN_ROUTE = (
+    f"{ACCOUNTS_ROUTE}:{SIGN_IN_WITH_CUSTOM_TOKEN_MODE}"  # noqa: E501
+)
 UPDATE_ACCOUNT_ROUTE = f"{ACCOUNTS_ROUTE}:{UPDATE_ACCOUNT_MODE}"  # noqa: E501
 USER_DATA_ROUTE = f"{ACCOUNTS_ROUTE}:{USER_DATA_MODE}"  # noqa: E501
 
@@ -122,6 +126,22 @@ def post_body(id_token: str, provider_id: str):
     return f"id_token={id_token}&providerId={provider_id}"
 
 
+def default_identity_toolkit_url():
+    if FIREBASE_AUTH_EMULATOR_HOST:
+        return FIREBASE_AUTH_EMULATOR_HOST
+    return PRODUCTION_IDENTITY_TOOLKIT_URL
+
+
+def default_secure_token_url():
+    if FIREBASE_AUTH_EMULATOR_HOST:
+        return FIREBASE_AUTH_EMULATOR_HOST
+    return PRODUCTION_SECURE_TOKEN_URL
+
+
+def default_use_emulator_routes():
+    return FIREBASE_AUTH_EMULATOR_HOST
+
+
 @dataclass
 class AuthClient:
     """
@@ -131,17 +151,19 @@ class AuthClient:
     async with AuthClient(...) as auth_client:
         user = await auth_client.sign_in_with_custom_token(key=...)
     ```
+
+    Setting the ``FIREBASE_AUTH_EMULATOR_HOST`` environment variable will
+    change the defaults of this class to use the emulator endpoint and routes.
     """
 
     #: URL of the identity toolkit to use
-    identity_toolkit_url: str = PRODUCTION_IDENTITY_TOOLKIT_URL
+    identity_toolkit_url: str = field(default_factory=default_identity_toolkit_url)
 
     #: URL of the secure token endpoint to use
-    secure_token_url: str = PRODUCTION_SECURE_TOKEN_URL
+    secure_token_url: str = field(default_factory=default_secure_token_url)
 
-    #: Base route for auth operations. "/v1" in prod, or "/emulator/v1" on the
-    #: emulator.
-    base_route: str = VERSION_ONE_BASE_ROUTE
+    #: Whether to use emulator routes
+    use_emulator_routes: bool = field(default_factory=default_use_emulator_routes)
 
     #: Optional API key to use in requests
     api_key: Optional[str] = None
@@ -153,14 +175,41 @@ class AuthClient:
         compare=False,
     )
 
+    token_session: aiohttp.ClientSession = field(
+        init=False,
+        repr=False,
+        hash=False,
+        compare=False,
+    )
+
     @property
     def params(self):
         return {API_KEY_PARAM: self.api_key} if self.api_key else {}
+
+    @property
+    def identity_toolkit_route_base(self):
+        return (
+            f"{EMULATOR_ID_TOOLKIT_BASE_ROUTE_PREFIX}{VERSION_ONE_BASE_ROUTE}"
+            if self.use_emulator_routes
+            else VERSION_ONE_BASE_ROUTE
+        )
+
+    @property
+    def secure_token_route_base(self):
+        return (
+            f"{EMULATOR_SECURE_TOKEN_BASE_ROUTE}{VERSION_ONE_BASE_ROUTE}"
+            if self.use_emulator_routes
+            else VERSION_ONE_BASE_ROUTE
+        )
 
     async def __aenter__(self):
         headers = {"Content-Type": "application/json"}
         self.session = aiohttp.ClientSession(
             base_url=self.identity_toolkit_url,
+            headers=headers,
+        )
+        self.token_session = aiohttp.ClientSession(
+            base_url=self.secure_token_url,
             headers=headers,
         )
         return self
@@ -180,13 +229,17 @@ class AuthClient:
         route: str,
         body: JSON,
         headers: Optional[Dict[str, str]] = None,
+        session: Optional[aiohttp.ClientSession] = None,
+        route_base: Optional[str] = None,
     ) -> JSON:
         """
         Post, and return the JSON or raise for an error code.
         """
+        session = session or self.session
+        route_base = route_base or self.identity_toolkit_route_base
         headers = headers or {}
-        async with self.session.post(
-            self.base_route + route,
+        async with session.post(
+            route_base + route,
             params=self.params,
             json=body,
             headers=headers,
@@ -200,6 +253,8 @@ class AuthClient:
         body: JSON,
         model: Type[_B],
         headers: Optional[Dict[str, str]] = None,
+        session: Optional[aiohttp.ClientSession] = None,
+        route_base: Optional[str] = None,
     ) -> _B:
         """
         Post, then convert the response to the given model
@@ -208,6 +263,8 @@ class AuthClient:
             route=route,
             body=body,
             headers=headers,
+            session=session,
+            route_base=route_base,
         )
         if isinstance(result, dict):
             return model(**snakeify_dict_keys(result))
@@ -233,10 +290,29 @@ class AuthClient:
             REFRESH_TOKEN_PARAM: refresh_token,
             GRANT_TYPE_PARAM: REFRESH_TOKEN_GRANT_TYPE,
         }
+        # async with aiohttp.request(
+        #     url=self.secure_token_url
+        #     + "/securetoken.googleapis.com"
+        #     + VERSION_ONE_BASE_ROUTE
+        #     + TOKEN_ROUTE,
+        #     method="POST",
+        #     params=self.params,
+        #     json=body,
+        #     headers={"Content-Type": "application/json"},
+        # ) as response:
+        #     self._handle_request_error(response)
+        #     result = await response.json()
+        #     if isinstance(result, dict):
+        #         return RefreshUser(**snakeify_dict_keys(result))
+        #     else:
+        #         raise TypeError(f"Got unexpected response {type(result)}: {result}")
+        #     # return await response.json()
         return await self._post_model(
             route=TOKEN_ROUTE,
             body=body,
             model=RefreshUser,
+            session=self.token_session,
+            route_base=self.secure_token_route_base,
         )
 
     async def sign_up(self, email: str, password: str):
