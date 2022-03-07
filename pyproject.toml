@@ -73,7 +73,7 @@ sequence = [
 ]
 
 [tool.poe.tasks.integration.env]
-FIREBASE_AUTH_EMULATOR_HOST = "localhost:9099"
+FIREBASE_AUTH_EMULATOR_HOST = "http://127.0.0.1:9099"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]

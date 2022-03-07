@@ -84,3 +84,7 @@ from firebasil.auth.auth import snakeify_dict_keys
 )
 def test_snakeify_dict_keys(raw: Dict[str, Any], expected: Dict[str, Any]):
     assert snakeify_dict_keys(raw) == expected
+
+
+def test_default_identity_toolkit_url():
+    assert False
