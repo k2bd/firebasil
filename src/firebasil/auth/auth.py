@@ -1,3 +1,4 @@
+import json
 import logging
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional, Type, TypeVar
@@ -37,20 +38,34 @@ logger = logging.getLogger(__name__)
 _B = TypeVar("_B", bound=_Base)
 
 PRODUCTION_IDENTITY_TOOLKIT_URL = "https://identitytoolkit.googleapis.com/"
+PRODUCTION_SECURE_TOKEN_URL = "https://securetoken.googleapis.com/"
 VERSION_ONE_BASE_ROUTE = "/v1"
-EMULATOR_BASE_ROUTE = "/emulator" + VERSION_ONE_BASE_ROUTE
+EMULATOR_BASE_ROUTE = f"/identitytoolkit.googleapis.com{VERSION_ONE_BASE_ROUTE}"
+
+CREATE_AUTH_URI_MODE = "createAuthUri"
+DELETE_ACCOUNT_MODE = "delete"
+OUT_OF_BAND_CODES_MODE = "sendOobCode"
+RESET_PASSWORD_CODE_MODE = "resetPassword"
+SIGN_IN_OAUTH_MODE = "signInWithIdp"
+SIGN_IN_PASSWORD_MODE = "signInWithPassword"
+SIGN_UP_MODE = "signUp"
+UPDATE_ACCOUNT_MODE = "update"
+USER_DATA_MODE = "lookup"
+SIGN_IN_WITH_CUSTOM_TOKEN_MODE = "signInWithCustomToken"
 
 ACCOUNTS_ROUTE = "/accounts"
-CREATE_AUTH_URI_ROUTE = ACCOUNTS_ROUTE + ":createAuthUri"
-DELETE_ACCOUNT_ROUTE = ACCOUNTS_ROUTE + ":delete"
-OUT_OF_BAND_CODES_ROUTE = ACCOUNTS_ROUTE + ":sendOobCode"
-RESET_PASSWORD_CODE_ROUTE = ACCOUNTS_ROUTE + ":resetPassword"
-SIGN_IN_OAUTH_ROUTE = ACCOUNTS_ROUTE + ":signInWithIdp"
-SIGN_IN_PASSWORD_ROUTE = ACCOUNTS_ROUTE + ":signInWithPassword"
-SIGN_UP_ROUTE = ACCOUNTS_ROUTE + ":signUp"
 TOKEN_ROUTE = "/token"
-UPDATE_ACCOUNT_ROUTE = ACCOUNTS_ROUTE + ":update"
-USER_DATA_ROUTE = ACCOUNTS_ROUTE + ":lookup"
+
+CREATE_AUTH_URI_ROUTE = f"{ACCOUNTS_ROUTE}:{CREATE_AUTH_URI_MODE}"  # noqa: E501
+DELETE_ACCOUNT_ROUTE = f"{ACCOUNTS_ROUTE}:{DELETE_ACCOUNT_MODE}"  # noqa: E501
+OUT_OF_BAND_CODES_ROUTE = f"{ACCOUNTS_ROUTE}:{OUT_OF_BAND_CODES_MODE}"  # noqa: E501
+RESET_PASSWORD_CODE_ROUTE = f"{ACCOUNTS_ROUTE}:{RESET_PASSWORD_CODE_MODE}"  # noqa: E501
+SIGN_IN_OAUTH_ROUTE = f"{ACCOUNTS_ROUTE}:{SIGN_IN_OAUTH_MODE}"  # noqa: E501
+SIGN_IN_PASSWORD_ROUTE = f"{ACCOUNTS_ROUTE}:{SIGN_IN_PASSWORD_MODE}"  # noqa: E501
+SIGN_UP_ROUTE = f"{ACCOUNTS_ROUTE}:{SIGN_UP_MODE}"  # noqa: E501
+SIGN_IN_WITH_CUSTOM_TOKEN_ROUTE = f"{ACCOUNTS_ROUTE}:{SIGN_IN_WITH_CUSTOM_TOKEN_MODE}"  # noqa: E501
+UPDATE_ACCOUNT_ROUTE = f"{ACCOUNTS_ROUTE}:{UPDATE_ACCOUNT_MODE}"  # noqa: E501
+USER_DATA_ROUTE = f"{ACCOUNTS_ROUTE}:{USER_DATA_MODE}"  # noqa: E501
 
 API_KEY_PARAM = "key"
 CONTINUE_URI_PARAM = "continueUri"
@@ -120,6 +135,9 @@ class AuthClient:
 
     #: URL of the identity toolkit to use
     identity_toolkit_url: str = PRODUCTION_IDENTITY_TOOLKIT_URL
+
+    #: URL of the secure token endpoint to use
+    secure_token_url: str = PRODUCTION_SECURE_TOKEN_URL
 
     #: Base route for auth operations. "/v1" in prod, or "/emulator/v1" on the
     #: emulator.
@@ -202,7 +220,7 @@ class AuthClient:
         """
         body = {TOKEN_PARAM: token, **return_secure_token()}
         return await self._post_model(
-            route=ACCOUNTS_ROUTE,
+            route=SIGN_IN_WITH_CUSTOM_TOKEN_ROUTE,
             body=body,
             model=SignInWithTokenUser,
         )
@@ -514,7 +532,7 @@ class AuthClient:
         Only available for the auth emulator.
         """
         async with self.session.delete(
-            f"{self.base_route}/projects/{project_id}/accounts",
+            f"/emulator/v1/projects/{project_id}/accounts",
         ) as response:
             self._handle_request_error(response)
 
@@ -525,7 +543,7 @@ class AuthClient:
         Only available for the auth emulator.
         """
         async with self.session.get(
-            f"{self.base_route}/projects/{project_id}/config",
+            f"/emulator/v1/projects/{project_id}/config",
         ) as response:
             self._handle_request_error(response)
             result = await response.json()
@@ -541,8 +559,8 @@ class AuthClient:
         """
         body = {"signIn": {"allowDuplicateEmails": allow_duplicate_emails}}
         async with self.session.patch(
-            f"{self.base_route}/projects/{project_id}/config",
-            body=body,
+            f"/emulator/v1/projects/{project_id}/config",
+            data=json.dumps(body),
         ) as response:
             self._handle_request_error(response)
             result = await response.json()
@@ -555,7 +573,7 @@ class AuthClient:
         Only available for the auth emulator.
         """
         async with self.session.get(
-            f"{self.base_route}/projects/{project_id}/oobCodes",
+            f"/emulator/v1/projects/{project_id}/oobCodes",
         ) as response:
             self._handle_request_error(response)
             result = await response.json()
@@ -568,7 +586,7 @@ class AuthClient:
         Only available for the auth emulator.
         """
         async with self.session.get(
-            f"{self.base_route}/projects/{project_id}/verificationCodes",
+            f"/emulator/v1/projects/{project_id}/verificationCodes",
         ) as response:
             self._handle_request_error(response)
             result = await response.json()

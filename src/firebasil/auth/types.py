@@ -1,8 +1,9 @@
 from dataclasses import dataclass
 from datetime import datetime, timedelta
-from typing import List
+from typing import List, Optional
 
 
+@dataclass
 class _Base:
     def __post_init__(self):
         pass
@@ -10,6 +11,9 @@ class _Base:
 
 @dataclass
 class _WithUserBasic(_Base):
+    #: Response kind, sent by gcloud
+    kind: str
+
     #: ID token
     id_token: str
 
@@ -17,11 +21,12 @@ class _WithUserBasic(_Base):
     refresh_token: str
 
     #: Seconds until the token expires, as of time of issue
-    expires_in: timedelta
+    expires_in: Optional[timedelta] = None
 
     def __post_init__(self):
         super().__post_init__()
-        self.expires_in = timedelta(seconds=float(self.expires_in))
+        if self.expires_in is not None:
+            self.expires_in = timedelta(seconds=float(self.expires_in))
 
 
 @dataclass
