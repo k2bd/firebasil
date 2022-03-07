@@ -42,6 +42,7 @@ pytest-cov = "^3.0.0"
 poethepoet = "^0.11.0"
 pytest-asyncio = "^0.18.1"
 firebase-admin = "^5.2.0"
+pytest-random-order = "^1.0.4"
 
 [tool.isort]
 profile = "black"
@@ -64,12 +65,12 @@ test.sequence = ["unit", "integration"]
 
 [tool.poe.tasks.unit]
 sequence = [
-    {cmd = "pytest -vv --cov-report xml --cov-report term --cov=firebasil tests/unit"},
+    {cmd = "pytest -vv --random-order --cov-report xml --cov-report term --cov=firebasil tests/unit"},
 ]
 
 [tool.poe.tasks.integration]
 sequence = [
-    {shell = 'firebase emulators:exec --project demo-firebasil-test "pytest -vv --cov-append --cov-report xml --cov-report term --cov=firebasil -s tests/integration"'},
+    {shell = 'firebase emulators:exec --project demo-firebasil-test "pytest -vv --random-order --cov-append --cov-report xml --cov-report term --cov=firebasil -s tests/integration"'},
 ]
 
 [tool.poe.tasks.integration.env]

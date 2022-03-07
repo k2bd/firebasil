@@ -2,7 +2,16 @@ from typing import Any, Dict
 
 import pytest
 
-from firebasil.auth.auth import snakeify_dict_keys
+from firebasil.auth.auth import (
+    PRODUCTION_IDENTITY_TOOLKIT_URL,
+    PRODUCTION_SECURE_TOKEN_URL,
+    AuthClient,
+    default_identity_toolkit_url,
+    default_secure_token_url,
+    default_use_emulator_routes,
+    snakeify_dict_keys,
+)
+from tests.helpers import temp_env
 
 
 @pytest.mark.parametrize(
@@ -84,7 +93,3 @@ from firebasil.auth.auth import snakeify_dict_keys
 )
 def test_snakeify_dict_keys(raw: Dict[str, Any], expected: Dict[str, Any]):
     assert snakeify_dict_keys(raw) == expected
-
-
-def test_default_identity_toolkit_url():
-    assert False
