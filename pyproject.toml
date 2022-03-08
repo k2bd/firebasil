@@ -8,6 +8,7 @@ license = "MIT"
 readme = "README.md"
 homepage = "https://github.com/k2bd/firebasil"
 repository = "https://github.com/k2bd/firebasil"
+documentation = "https://firebasil.readthedocs.io/"
 keywords = []
 classifiers = [
     "Operating System :: OS Independent",
