@@ -148,11 +148,6 @@ class AuthClient:
     """
     A connection to Firebase auth. Should be used as an async context manager.
 
-    ```python
-    async with AuthClient(api_key=...) as auth_client:
-        user = await auth_client.sign_in_with_custom_token(key=...)
-    ```
-
     Setting the ``FIREBASE_AUTH_EMULATOR_HOST`` environment variable will
     change the defaults of this class to use the emulator endpoint and routes.
     """

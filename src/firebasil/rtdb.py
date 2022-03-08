@@ -46,12 +46,7 @@ class SizeLimit(str, Enum):
 class Rtdb:
     """
     A connection to a realtime database. Should be used as an async context
-    manager, which yields the root node of the database:
-
-    ```python
-    async with Rtdb(...) as root:
-        whole_database = await root.get()
-    ```
+    manager, which yields the root ``RtdbNode`` of the database.
     """
 
     #: URL of the realtime database, including schema
@@ -60,12 +55,8 @@ class Rtdb:
     #: User ID token (optional)
     id_token: Optional[str] = None
 
-    #: Refresh token. If provided, expired tokens will be refreshed
-    #: automatically. (optional)
-    refresh_token: Optional[str] = None  # TODO
-
     #: Access token, for example for service accounts (optional)
-    access_token: Optional[str] = None  # TODO
+    access_token: Optional[str] = None
 
     session: aiohttp.ClientSession = field(
         init=False,
