@@ -2,6 +2,7 @@ from typing import AsyncGenerator
 from uuid import uuid4
 
 import pytest
+from firebase_admin import App, initialize_app
 
 from firebasil.auth import AuthClient
 from firebasil.auth.constants import FIREBASE_AUTH_EMULATOR_HOST
@@ -12,7 +13,6 @@ from tests.integration.constants import (
     TESTING_DATABASE_URL,
     TESTING_PROJECT_ID,
 )
-from firebase_admin import initialize_app, delete_app, App
 
 # Initialize the admin app once
 _admin_app = initialize_app(options={"projectId": TESTING_PROJECT_ID})
