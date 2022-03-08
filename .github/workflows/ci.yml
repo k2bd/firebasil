@@ -23,6 +23,8 @@ jobs:
         run: poetry install
       - name: Lint
         run: poetry run poe lint
+      - name: Build Docs
+        run: poetry run poe docs SPHINXOPTS=-W
       - name: Install Firebase Emulator Suite
         run: npm install -g firebase-tools@10.0.1
       - name: Test
