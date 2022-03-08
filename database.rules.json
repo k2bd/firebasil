@@ -1,0 +1,16 @@
+{
+  "rules": {
+    ".read": true,
+    ".write": true,
+    "scores": {
+      ".indexOn": ".value"
+    },
+    "abcd": {
+      "$childId": {
+        "stats": {
+          ".indexOn": ["wis", "int"]
+        }
+      }
+    }
+  }
+}

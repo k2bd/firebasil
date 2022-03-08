@@ -28,8 +28,10 @@ include = [
 [tool.poetry.dependencies]
 python = "^3.7"
 aiohttp = "^3.8.1"
-aiohttp-sse-client = "^0.2.1"
 typing-extensions = "^4.1.1"
+stringcase = "^1.2.0"
+aiohttp-sse-client = "^0.2.1"
+dateparser = "^1.1.0"
 
 [tool.poetry.dev-dependencies]
 pytest = "^6.1"
@@ -40,8 +42,9 @@ mypy = "^0.931"
 pytest-cov = "^3.0.0"
 poethepoet = "^0.11.0"
 pytest-asyncio = "^0.18.1"
-freezegun = "^1.1.0"
-types-freezegun = "^1.1.6"
+firebase-admin = "^5.2.0"
+pytest-random-order = "^1.0.4"
+types-dateparser = "^1.1.0"
 
 [tool.isort]
 profile = "black"
@@ -64,13 +67,16 @@ test.sequence = ["unit", "integration"]
 
 [tool.poe.tasks.unit]
 sequence = [
-    {cmd = "pytest -vv --cov-report xml --cov-report term --cov=firebasil tests/unit"},
+    {cmd = "pytest -vv --random-order --cov-report xml --cov-report term --cov=firebasil tests/unit"},
 ]
 
 [tool.poe.tasks.integration]
 sequence = [
-    {shell = 'firebase emulators:exec --only database --project demo-firebasil-test "pytest -vv --cov-append --cov-report xml --cov-report term --cov=firebasil tests/integration"'},
+    {shell = 'firebase emulators:exec --project demo-firebasil-test "pytest -vv --random-order --cov-append --cov-report xml --cov-report term --cov=firebasil -s tests/integration"'},
 ]
+
+[tool.poe.tasks.integration.env]
+FIREBASE_AUTH_EMULATOR_HOST = "http://127.0.0.1:9099"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]

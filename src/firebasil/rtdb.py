@@ -1,26 +1,29 @@
 from __future__ import annotations
 
 import asyncio
-import json
 import logging
 from contextlib import asynccontextmanager
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta, timezone
+from datetime import timedelta
 from enum import Enum
 from typing import Any, AsyncGenerator, Dict, Optional
 from urllib.parse import urljoin
 
 import aiohttp
-from aiohttp_sse_client import client as sse_client
-from aiohttp_sse_client.client import MessageEvent
 from typing_extensions import Protocol, runtime_checkable
 
-from firebasil.exceptions import RtdbListenerConnectionException, RtdbRequestException
+from firebasil.exceptions import RtdbRequestException
+from firebasil.sse.sse_client import SseClient, SseMessage
 from firebasil.types import JSON
 
 logger = logging.getLogger(__name__)
 
 STARTUP_TIME_SECONDS = 0.5
+
+ORDER_BY_KEY = "$key"
+ORDER_BY_VALUE = "$value"
+ORDER_BY_PRIORITY = "$priority"
+EXPORT_FORMAT = "export"
 
 
 class EventType(str, Enum):
@@ -29,6 +32,14 @@ class EventType(str, Enum):
     keep_alive = "keep-alive"
     cancel = "cancel"
     auth_revoked = "auth_revoked"
+
+
+class SizeLimit(str, Enum):
+    tiny = "tiny"
+    small = "small"
+    medium = "medium"
+    large = "large"
+    unlimited = "unlimited"
 
 
 @dataclass
@@ -127,11 +138,11 @@ class RtdbNode:
         """
         return self.child(path)
 
-    def _handle_request_error(self, response: aiohttp.ClientResponse, method: str):
+    def _handle_request_error(self, response: aiohttp.ClientResponse):
         try:
             response.raise_for_status()
         except Exception as e:
-            msg = f"Error in {method.upper()} {self.path!r}: {str(e)}"
+            msg = f"Error in {response.request_info.method} /{self.path}: {str(e)}"
             raise RtdbRequestException(msg) from e
 
     async def get(self) -> JSON:
@@ -142,7 +153,7 @@ class RtdbNode:
             self.json_url,
             params=self.params,
         ) as response:
-            self._handle_request_error(response, "get")
+            self._handle_request_error(response)
             return await response.json()
 
     async def set(self, data: JSON) -> JSON:
@@ -154,7 +165,7 @@ class RtdbNode:
             params=self.params,
             json=data,
         ) as response:
-            self._handle_request_error(response, "put")
+            self._handle_request_error(response)
             return await response.json()
 
     async def push(self, data: JSON) -> str:
@@ -168,7 +179,7 @@ class RtdbNode:
             params=self.params,
             json=data,
         ) as response:
-            self._handle_request_error(response, "post")
+            self._handle_request_error(response)
             result = await response.json()
             return result["name"]
 
@@ -183,7 +194,7 @@ class RtdbNode:
             params=self.params,
             json=data,
         ) as response:
-            self._handle_request_error(response, "patch")
+            self._handle_request_error(response)
             return await response.json()
 
     async def delete(self) -> None:
@@ -194,113 +205,178 @@ class RtdbNode:
             self.json_url,
             params=self.params,
         ) as response:
-            self._handle_request_error(response, "delete")
+            self._handle_request_error(response)
             return await response.json()
 
-    @asynccontextmanager
-    async def listen(
-        self,
-        on_event: OnEvent,
-        reconnection_time: Optional[timedelta] = None,
-        max_connect_retry: Optional[int] = None,
-    ) -> AsyncGenerator[RtdbListener, None]:
-        listener = RtdbListener(_node=self, on_event=on_event)
-        await listener.start_listening(
-            reconnection_time=reconnection_time,
-            max_connect_retry=max_connect_retry,
+    def _copy_with_params(self, **kwargs) -> RtdbNode:
+        query_params = {**(self.query_params or {})}
+        query_params.update(kwargs)
+        return type(self)(
+            _rtdb=self._rtdb,
+            path=self.path,
+            query_params=query_params,
         )
 
-        try:
-            yield listener
-        finally:
-            await listener.stop_listening()
+    def order_by_key(self) -> RtdbNode:
+        """
+        Order filtering operations by key.
+
+        Note, this does not order results, as they are returned as unordered
+        JSON.
+
+        See https://firebase.google.com/docs/database/rest/retrieve-data#section-rest-ordered-data
+        """  # noqa: E501
+        return self.order_by(ORDER_BY_KEY)
+
+    def order_by_value(self) -> RtdbNode:
+        """
+        Order filtering operations by node value.
+
+        Note, this does not order results, as they are returned as unordered
+        JSON.
+
+        See https://firebase.google.com/docs/database/rest/retrieve-data#section-rest-ordered-data
+        """  # noqa: E501
+        return self.order_by(ORDER_BY_VALUE)
+
+    def order_by_priority(self) -> RtdbNode:
+        """
+        Order filtering operations by priority.
+
+        Note, this does not order results, as they are returned as unordered
+        JSON.
+
+        See https://firebase.google.com/docs/database/rest/retrieve-data#section-rest-ordered-data
+        """  # noqa: E501
+        return self.order_by(ORDER_BY_PRIORITY)
+
+    def order_by(self, child_location: str) -> RtdbNode:
+        """
+        Order filtering operations by the value of a specified (possibly
+        nested) child node.
+
+        Note, this does not order results, as they are returned as unordered
+        JSON.
+
+        See https://firebase.google.com/docs/database/rest/retrieve-data#section-rest-ordered-data
+        """  # noqa: E501
+        return self._copy_with_params(orderBy=f'"{child_location}"')
+
+    def limit_to_first(self, limit: int) -> RtdbNode:
+        """
+        Only return the first ``limit`` results after some ordering and
+        filtering is applied.
+
+        See https://firebase.google.com/docs/database/rest/retrieve-data#section-rest-filtering
+        """  # noqa: E501
+        return self._copy_with_params(limitToFirst=str(limit))
+
+    def limit_to_last(self, limit: int) -> RtdbNode:
+        """
+        Only return the last ``limit`` results after some ordering and
+        filtering is applied.
+        """
+        return self._copy_with_params(limitToLast=str(limit))
+
+    def start_at(self, value: Any) -> RtdbNode:
+        """
+        Return values starting at ``value`` under some ordering.
+
+        See https://firebase.google.com/docs/database/rest/retrieve-data#section-rest-filtering
+        """  # noqa: E501
+        return self._copy_with_params(
+            startAt=f'"{value}"' if isinstance(value, str) else value
+        )
+
+    def end_at(self, value: Any) -> RtdbNode:
+        """
+        Return values ending at ``value`` under some ordering.
+
+        See https://firebase.google.com/docs/database/rest/retrieve-data#section-rest-filtering
+        """  # noqa: E501
+        return self._copy_with_params(
+            endAt=f'"{value}"' if isinstance(value, str) else value
+        )
+
+    def equal_to(self, value: Any) -> RtdbNode:
+        """
+        Return values with value equal to ``value`` under some ordering.
+
+        See https://firebase.google.com/docs/database/rest/retrieve-data#section-rest-filtering
+        """  # noqa: E501
+        return self._copy_with_params(
+            equalTo=f'"{value}"' if isinstance(value, str) else value
+        )
+
+    def shallow(self) -> RtdbNode:
+        """
+        Create a node that only gets shallow data
+
+        See https://firebase.google.com/docs/reference/rest/database#section-param-shallow
+        """  # noqa: E501
+        return self._copy_with_params(shallow="true")
+
+    def export_format(self) -> RtdbNode:
+        """
+        Include priority data in responses
+
+        See https://firebase.google.com/docs/reference/rest/database#section-param-format
+        """  # noqa: E501
+        return self._copy_with_params(format=EXPORT_FORMAT)
+
+    def timeout(self, timeout: timedelta) -> RtdbNode:
+        """
+        Set a request timeout.
+
+        See https://firebase.google.com/docs/reference/rest/database#section-param-timeout
+        """  # noqa: E501
+        timeout_str = f"{timeout.total_seconds()}s"
+        return self._copy_with_params(timeout=timeout_str)
+
+    def write_size_limit(self, limit: SizeLimit) -> RtdbNode:
+        """
+        Limit write sizes.
+
+        See https://firebase.google.com/docs/reference/rest/database#section-param-writesizelimit
+        """  # noqa: E501
+        return self._copy_with_params(writeSizeLimit=limit.value)
+
+    @asynccontextmanager
+    async def events(self) -> AsyncGenerator[asyncio.Queue[RtdbEvent], None]:
+        """
+        Async context manager that listens to the event stream of this node and
+        adds events to the async queue that it yields.
+        """
+        events: asyncio.Queue[RtdbEvent] = asyncio.Queue()
+
+        async def on_message(message: SseMessage):
+            logger.info("Message: %s", message)
+            if message.data is None:
+                event = RtdbEvent(event=EventType(message.event))
+            elif isinstance(message.data, dict):
+                event = RtdbEvent(
+                    event=EventType(message.event),
+                    path=message.data["path"],
+                    data=message.data["data"],
+                )
+            else:
+                raise ValueError(f"Could not parse event: {event}")
+
+            await events.put(event)
+
+        async with SseClient(
+            url=urljoin(self._rtdb.database_url, self.json_url),
+            headers=dict(self._rtdb.session.headers),
+            params=self.params,
+            on_message=on_message,
+        ):
+            yield events
 
 
 @runtime_checkable
 class OnEvent(Protocol):
     def __call__(self, event: RtdbEvent) -> None:
         ...
-
-
-@dataclass
-class RtdbListener:
-    _node: RtdbNode
-
-    stream_consumer: Optional[asyncio.Task] = field(
-        default=None,
-        init=False,
-        repr=False,
-        hash=False,
-        compare=False,
-    )
-
-    #: Callable to trigger when an event is received
-    on_event: OnEvent = field(repr=False)
-
-    async def start_listening(
-        self,
-        reconnection_time: Optional[timedelta] = None,
-        max_connect_retry: Optional[int] = None,
-    ):
-        opened = False
-        errored = False
-
-        connect_kwargs: Dict[str, Any] = {}
-        if reconnection_time:
-            connect_kwargs["reconnection_time"] = reconnection_time
-        if max_connect_retry:
-            connect_kwargs["max_connect_retry"] = max_connect_retry
-
-        def handle_message(message: MessageEvent):
-            logger.info("Message: %s", message)
-            json_msg: Dict[str, Any] = json.loads(message.data)
-            event = RtdbEvent(
-                event=EventType[message.type],
-                path=json_msg["path"],
-                data=json_msg["data"],
-            )
-            self.on_event(event)
-
-        def handle_open():
-            nonlocal opened
-            opened = True
-
-        def handle_error():
-            nonlocal errored
-            errored = True
-
-        async def listener_coro():
-            url = urljoin(self._node._rtdb.database_url, self._node.json_url)
-            headers = {
-                **self._node._rtdb.session.headers,
-                "Accept": "text/event-stream",
-            }
-            async with sse_client.EventSource(
-                url,
-                headers=headers,
-                params=self._node.params,
-                on_message=handle_message,
-                on_open=handle_open,
-                on_error=handle_error,
-                **connect_kwargs,
-            ) as event_source:
-                async for event in event_source:
-                    logger.debug(event)
-
-        loop = asyncio.get_event_loop()
-        self.stream_consumer = loop.create_task(listener_coro())
-        while not opened and not errored:
-            await asyncio.sleep(0)
-        if errored:
-            raise RtdbListenerConnectionException(
-                f"Unable to listen to {self._node.json_url}"
-            )
-
-    async def stop_listening(self):
-        self.stream_consumer.cancel()
-        while not self.stream_consumer.cancelled():
-            await asyncio.sleep(0)
-        self.stream_consumer = None
 
 
 @dataclass
@@ -313,10 +389,7 @@ class RtdbEvent:
     event: EventType
 
     #: Path of the event, relative to the listener
-    path: str
+    path: Optional[str] = None
 
     #: Body of the event, either the new or updated values
-    data: JSON
-
-    #: Time the event was received (UTC, with tzinfo)
-    time_received: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+    data: Optional[JSON] = None
