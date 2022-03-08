@@ -12,6 +12,7 @@ keywords = []
 classifiers = [
     "Operating System :: OS Independent",
     "Development Status :: 1 - Planning",
+    "Programming Language :: Python",
     "Programming Language :: Python :: 3 :: Only",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.7",
@@ -20,6 +21,8 @@ classifiers = [
     "Programming Language :: Python :: 3.10",
     "License :: OSI Approved :: MIT License",
     "Intended Audience :: Developers",
+    "Topic :: Software Development :: Libraries",
+    "Topic :: Database",
 ]
 include = [
     "LICENSE",
@@ -37,7 +40,7 @@ dateparser = "^1.1.0"
 pytest = "^6.1"
 black = "^21.12b0"
 isort = "^5.10.1"
-flake8 = "^4.0.1"
+flake8 = "^3.9.2"
 mypy = "^0.931"
 pytest-cov = "^3.0.0"
 poethepoet = "^0.11.0"
@@ -45,12 +48,17 @@ pytest-asyncio = "^0.18.1"
 firebase-admin = "^5.2.0"
 pytest-random-order = "^1.0.4"
 types-dateparser = "^1.1.0"
+Sphinx = "^4.4.0"
+sphinx-rtd-theme = "^1.0.0"
+sphinxcontrib-napoleon = "^0.7"
 
 [tool.isort]
 profile = "black"
 multi_line_output = 3
 
 [tool.poe.tasks]
+docs = "make clean html -C docs"
+
 autoformat.sequence = [
     {cmd = "black src tests"},
     {cmd = "isort src tests"},

@@ -81,6 +81,26 @@ async def test_order_by_key(rtdb_root: RtdbNode):
     }
 
 
+@pytest.mark.asyncio
+async def test_order_by_key_docs_example(rtdb_root: RtdbNode):
+    """
+    An example for the docs
+    """
+    # Set the database state from the root node
+    await rtdb_root.set({"scores": {"a": 5, "b": 4, "c": 3, "d": 2, "e": 1}})
+
+    # Build a child node that references the 'scores' path
+    child_node = rtdb_root / "scores"
+
+    # Get the value of the further 'c' child
+    c_value = await (child_node / "c").get()
+    assert c_value == 3
+
+    # Query for the last two entries at that location, ordered by key
+    query_value = await child_node.order_by_key().limit_to_last(2).get()
+    assert query_value == {"d": 2, "e": 1}
+
+
 @pytest.mark.xfail  # See k2bd/firebasil#6
 @pytest.mark.asyncio
 async def test_order_by_value(rtdb_root: RtdbNode):
