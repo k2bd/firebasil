@@ -31,6 +31,7 @@ aiohttp = "^3.8.1"
 typing-extensions = "^4.1.1"
 stringcase = "^1.2.0"
 aiohttp-sse-client = "^0.2.1"
+dateparser = "^1.1.0"
 
 [tool.poetry.dev-dependencies]
 pytest = "^6.1"
@@ -43,6 +44,7 @@ poethepoet = "^0.11.0"
 pytest-asyncio = "^0.18.1"
 firebase-admin = "^5.2.0"
 pytest-random-order = "^1.0.4"
+types-dateparser = "^1.1.0"
 
 [tool.isort]
 profile = "black"

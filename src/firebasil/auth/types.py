@@ -2,6 +2,8 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta
 from typing import List, Optional
 
+from dateparser import parse as parse_datetime
+
 
 @dataclass
 class _Base:
@@ -31,6 +33,7 @@ class _WithResponseKind(_Base):
     #: Response kind, sent by gcloud
     kind: str
 
+
 @dataclass
 class _WithIsNewUser(_Base):
     #: Whether the token is issued to a new user
@@ -41,6 +44,7 @@ class _WithIsNewUser(_Base):
 class _WithAccessToken(_Base):
     #: Access token
     access_token: str
+
 
 @dataclass
 class _WithTokenType(_Base):
@@ -199,7 +203,7 @@ class _WithValidSince(_Base):
 @dataclass
 class _WithDisabled(_Base):
     #: Whether the account is disabled or not.
-    disabled: bool
+    disabled: Optional[bool] = None
 
 
 @dataclass
@@ -225,7 +229,25 @@ class _WithCreatedAt(_Base):
 @dataclass
 class _WithCustomAuth(_Base):
     #: Whether the account is authenticated by the developer.
-    custom_auth: bool
+    custom_auth: Optional[bool] = None
+
+
+@dataclass
+class _WithSalt(_Base):
+    #: Salt
+    salt: str
+
+
+@dataclass
+class _WithLastRefreshAt(_Base):
+    #: Last Refresh Time
+    last_refresh_at: Optional[datetime]
+
+    def __post_init__(self):
+        super().__post_init__()
+        self.last_refresh_at = (
+            parse_datetime(self.last_refresh_at) if self.last_refresh_at else None
+        )
 
 
 # --- Returned types
@@ -373,6 +395,8 @@ class UpdateProfileResponse(
 class UserInfoItem(
     _WithDisplayName,
     _WithPhotoUrl,
+    _WithCustomAuth,
+    _WithDisabled,
     _WithLocalId,
     _WithEmail,
     _WithEmailVerified,
@@ -380,16 +404,16 @@ class UserInfoItem(
     _WithPasswordHash,
     _WithPasswordUpdatedAt,
     _WithValidSince,
-    _WithDisabled,
     _WithLastLoginAt,
     _WithCreatedAt,
-    _WithCustomAuth,
+    _WithSalt,
+    _WithLastRefreshAt,
 ):
     pass
 
 
 @dataclass
-class AccountInfo(_Base):
+class AccountInfo(_WithResponseKind):
     #: The account associated with the given Firebase ID token.
     users: List[UserInfoItem]
 
@@ -451,6 +475,7 @@ class UnlinkProviderResponse(
 @dataclass
 class SendEmailVerificationResponse(
     _WithEmail,
+    _WithResponseKind,
 ):
     pass
 
@@ -463,6 +488,8 @@ class ConfirmEmailVerificationResponse(
     _WithPasswordHash,
     _WithProviderUserInfo,
     _WithEmailVerified,
+    _WithResponseKind,
+    _WithLocalId,
 ):
     pass
 

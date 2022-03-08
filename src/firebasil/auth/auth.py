@@ -5,8 +5,8 @@ from typing import Any, Dict, List, Optional, Type, TypeVar
 
 import aiohttp
 from stringcase import snakecase
-from firebasil.auth.constants import FIREBASE_AUTH_EMULATOR_HOST
 
+from firebasil.auth.constants import FIREBASE_AUTH_EMULATOR_HOST
 from firebasil.auth.types import (
     AccountInfo,
     AnonymousUser,
@@ -341,7 +341,7 @@ class AuthClient:
             model=AnonymousUser,
         )
 
-    @experimental("OAuth support is currently experimental.")
+    @experimental("OAuth provider support is currently experimental.")
     async def sign_in_with_oauth(
         self,
         request_uri: str,
@@ -497,6 +497,7 @@ class AuthClient:
             model=AccountInfo,
         )
 
+    @experimental("Account linking is currently experimental.")
     async def link_account_with_email_and_password(
         self, id_token: str, email: str, password: str
     ):
@@ -515,7 +516,7 @@ class AuthClient:
             model=LinkAccountEmailResponse,
         )
 
-    @experimental("OAuth support is currently experimental.")
+    @experimental("OAuth provider support is currently experimental.")
     async def link_account_with_oauth_credential(
         self,
         id_token: str,
@@ -542,7 +543,7 @@ class AuthClient:
             model=LinkAccountOauthResponse,
         )
 
-    @experimental("OAuth support is currently experimental.")
+    @experimental("OAuth provider support is currently experimental.")
     async def unlink_provider(self, id_token: str, provider_ids: List[str]):
         """
         Unlink an account from the given provider IDs.
