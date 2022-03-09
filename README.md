@@ -10,7 +10,7 @@ A modern async Firebase client.
 
 ## Auth
 
-[![Auth Baseline](https://github.com/k2bd/firebasil/milestone/1)](https://img.shields.io/github/milestones/progress/k2bd/firebasil/1)
+[![Auth Baseline](https://img.shields.io/github/milestones/progress/k2bd/firebasil/1)](https://github.com/k2bd/firebasil/milestone/1)
 
 The ``Auth`` async context manager provides access to auth routines.
 Every method returns a typed object with the information provided by the Firebase auth REST API.
@@ -31,7 +31,7 @@ The ``Auth`` class will use production GCP endpoints and routes for auth by defa
 
 ## Realtime Database (RTDB)
 
-[![RTDB Baseline](https://github.com/k2bd/firebasil/milestone/2)](https://img.shields.io/github/milestones/progress/k2bd/firebasil/2)
+[![RTDB Baseline](https://img.shields.io/github/milestones/progress/k2bd/firebasil/2)](https://github.com/k2bd/firebasil/milestone/2)
 
 The ``Rtdb`` async context manager yields the root node of the database.
 
@@ -61,13 +61,13 @@ A local emulator URL may be passed to ``Rtdb`` to test against the Firebase Emul
 
 ## Firestore Database
 
-[![Firestore Baseline](https://github.com/k2bd/firebasil/milestone/3)](https://img.shields.io/github/milestones/progress/k2bd/firebasil/3)
+[![Firestore Baseline](https://img.shields.io/github/milestones/progress/k2bd/firebasil/3)](https://github.com/k2bd/firebasil/milestone/3)
 
 Still in planning!
 
 ## Storage
 
-[![Storage Baseline](https://github.com/k2bd/firebasil/milestone/4)](https://img.shields.io/github/milestones/progress/k2bd/firebasil/4)
+[![Storage Baseline](https://img.shields.io/github/milestones/progress/k2bd/firebasil/4)](https://github.com/k2bd/firebasil/milestone/4)
 
 Still in planning!
 
