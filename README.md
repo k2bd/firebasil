@@ -3,6 +3,7 @@
 [![CI](https://github.com/k2bd/firebasil/actions/workflows/ci.yml/badge.svg)](https://github.com/k2bd/firebasil/actions/workflows/ci.yml)
 [![codecov](https://codecov.io/gh/k2bd/firebasil/branch/main/graph/badge.svg?token=0X48PIN0MC)](https://codecov.io/gh/k2bd/firebasil)
 [![PyPI](https://img.shields.io/pypi/v/firebasil)](https://pypi.org/project/firebasil/)
+[![Documentation Status](https://readthedocs.org/projects/firebasil/badge/?version=latest)](https://firebasil.readthedocs.io/en/latest/?badge=latest)
 
 A modern async Firebase client.
 
