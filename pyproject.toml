@@ -90,3 +90,6 @@ FIREBASE_AUTH_EMULATOR_HOST = "http://127.0.0.1:9099"
 [build-system]
 requires = ["poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
+
+[tool.poetry.extras]
+docs = ["sphinx", "sphinx_rtd_theme"]
