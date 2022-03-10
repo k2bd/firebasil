@@ -13,7 +13,7 @@ A modern async Firebase client.
 [![Auth Baseline](https://img.shields.io/github/milestones/progress/k2bd/firebasil/1)](https://github.com/k2bd/firebasil/milestone/1)
 [![Auth High level](https://img.shields.io/github/milestones/progress/k2bd/firebasil/6)](https://github.com/k2bd/firebasil/milestone/6)
 
-The ``Auth`` async context manager provides access to auth routines.
+The `Auth` async context manager provides access to auth routines.
 Every method returns a typed object with the information provided by the Firebase auth REST API.
 
 ```python
@@ -26,16 +26,21 @@ async with Auth(api_key=...) as auth:
         email="kevin@k2bd.dev",
         password="password1",
     )
+
+    updated = await auth_client.update_profile(
+        signed_in.id_token,
+        display_name="Kevin Duff",
+    )
 ```
 
-The ``Auth`` class will use production GCP endpoints and routes for auth by default, unless the ``FIREBASE_AUTH_EMULATOR_HOST`` environment variable is set, in which case the defaults change to the emulator. This can be overridden in both cases by passing in ``identity_toolkit_url``, ``secure_token_url``, and ``use_emulator_routes`` explicitly.
+The `Auth` class will use production GCP endpoints and routes for auth by default, unless the `FIREBASE_AUTH_EMULATOR_HOST` environment variable is set, in which case the defaults change to the emulator. This can be overridden in both cases by passing in `identity_toolkit_url`, `secure_token_url`, and `use_emulator_routes` explicitly.
 
 ## Realtime Database (RTDB)
 
 [![RTDB Baseline](https://img.shields.io/github/milestones/progress/k2bd/firebasil/2)](https://github.com/k2bd/firebasil/milestone/2)
 [![RTDB High level](https://img.shields.io/github/milestones/progress/k2bd/firebasil/5)](https://github.com/k2bd/firebasil/milestone/5)
 
-The ``Rtdb`` async context manager yields the root node of the database.
+The `Rtdb` async context manager yields the root node of the database.
 
 ```python
 from firebasil.rtdb import Rtdb
@@ -46,7 +51,7 @@ async with Rtdb(database_url=...) as root_node:
     await rtdb_root.set({"scores": {"a": 5, "b": 4, "c": 3, "d": 2, "e": 1}})
 
     # Build a child node that references the 'scores' path
-    child_node = rtdb_root / "scores"
+    child_node: RtdbNode = rtdb_root / "scores"
 
     # Get the value of the further 'c' child
     c_value = await (child_node / "c").get()
@@ -55,11 +60,18 @@ async with Rtdb(database_url=...) as root_node:
     # Query for the last two entries at that location, ordered by key
     query_value = await child_node.order_by_key().limit_to_last(2).get()
     assert query_value == {"d": 2, "e": 1}
+
+    # Watch a node for live changes
+    async with child_node.events() as event_queue:
+        event: RtdbEvent = await event_queue.get()
+        ...
+        # Somewhere, 'b' gets set to 7
+        # RtdbEvent(event=EventType.put, path='/b', data=7)
 ```
 
-Either a user ID token, or a machine credential access token, can be provided ``Rtdb`` through the ``id_token`` or ``access_token`` arguments, which will be used to pass the database's auth.
+Either a user ID token, or a machine credential access token, can be provided `Rtdb` through the `id_token` or `access_token` arguments, which will be used to pass the database's auth.
 
-A local emulator URL may be passed to ``Rtdb`` to test against the Firebase Emulator Suite.
+A local emulator URL may be passed to `Rtdb` to test against the Firebase Emulator Suite.
 
 ## Firestore Database
 
