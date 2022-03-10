@@ -1,4 +1,11 @@
-# Explicitly set the version of Python and its requirements
+version: 2
+
 python:
   install:
-    - requirements: pyproject.toml
+    - method: pip
+      path: .
+      extra_requirements:
+        - docs
+
+sphinx:
+  configuration: docs/conf.py
