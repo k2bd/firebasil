@@ -11,6 +11,7 @@ A modern async Firebase client.
 ## Auth
 
 [![Auth Baseline](https://img.shields.io/github/milestones/progress/k2bd/firebasil/1)](https://github.com/k2bd/firebasil/milestone/1)
+[![Auth High level](https://img.shields.io/github/milestones/progress/k2bd/firebasil/6)](https://github.com/k2bd/firebasil/milestone/6)
 
 The ``Auth`` async context manager provides access to auth routines.
 Every method returns a typed object with the information provided by the Firebase auth REST API.
@@ -32,6 +33,7 @@ The ``Auth`` class will use production GCP endpoints and routes for auth by defa
 ## Realtime Database (RTDB)
 
 [![RTDB Baseline](https://img.shields.io/github/milestones/progress/k2bd/firebasil/2)](https://github.com/k2bd/firebasil/milestone/2)
+[![RTDB High level](https://img.shields.io/github/milestones/progress/k2bd/firebasil/5)](https://github.com/k2bd/firebasil/milestone/5)
 
 The ``Rtdb`` async context manager yields the root node of the database.
 
