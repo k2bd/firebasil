@@ -21,7 +21,7 @@ Every method returns a typed object with the information provided by the Firebas
 from firebasil.auth import Auth
 
 
-async with Auth(api_key=...) as auth:
+async with Auth(api_key=...) as auth_client:
     # Sign up a new user
     signed_up = await auth_client.sign_up("kevin@k2bd.dev", "password1")
 
