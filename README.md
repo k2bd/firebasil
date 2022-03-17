@@ -14,14 +14,14 @@ A modern async Firebase client.
 [![Auth Baseline](https://img.shields.io/github/milestones/progress/k2bd/firebasil/1)](https://github.com/k2bd/firebasil/milestone/1)
 [![Auth High level](https://img.shields.io/github/milestones/progress/k2bd/firebasil/6)](https://github.com/k2bd/firebasil/milestone/6)
 
-The `Auth` async context manager provides access to auth routines.
+The `AuthClient` async context manager provides access to auth routines.
 Every method returns a typed object with the information provided by the Firebase auth REST API.
 
 ```python
-from firebasil.auth import Auth
+from firebasil.auth import AuthClient
 
 
-async with Auth(api_key=...) as auth_client:
+async with AuthClient(api_key=...) as auth_client:
     # Sign up a new user
     signed_up = await auth_client.sign_up("kevin@k2bd.dev", "password1")
 
@@ -37,7 +37,7 @@ async with Auth(api_key=...) as auth_client:
     )
 ```
 
-The `Auth` class will use production GCP endpoints and routes for auth by default, unless the `FIREBASE_AUTH_EMULATOR_HOST` environment variable is set, in which case the defaults change to the emulator. This can be overridden in both cases by passing in `identity_toolkit_url`, `secure_token_url`, and `use_emulator_routes` explicitly.
+The `AuthClient` class will use production GCP endpoints and routes for auth by default, unless the `FIREBASE_AUTH_EMULATOR_HOST` environment variable is set, in which case the defaults change to the emulator. This can be overridden in both cases by passing in `identity_toolkit_url`, `secure_token_url`, and `use_emulator_routes` explicitly.
 
 ## Realtime Database (RTDB)
 
