@@ -18,6 +18,9 @@ The `Auth` async context manager provides access to auth routines.
 Every method returns a typed object with the information provided by the Firebase auth REST API.
 
 ```python
+from firebasil.auth import Auth
+
+
 async with Auth(api_key=...) as auth:
     # Sign up a new user
     signed_up = await auth_client.sign_up("kevin@k2bd.dev", "password1")
@@ -45,6 +48,7 @@ The `Rtdb` async context manager yields the root node of the database.
 
 ```python
 from firebasil.rtdb import Rtdb
+
 
 async with Rtdb(database_url=...) as root_node:
 
