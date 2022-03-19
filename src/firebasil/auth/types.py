@@ -285,6 +285,8 @@ class SignUpUser(
 
 @dataclass
 class SignInWithPasswordUser(
+    _WithDisplayName,
+    _WithPhotoUrl,
     _WithUserBasic,
     _WithResponseKind,
     _WithEmail,
