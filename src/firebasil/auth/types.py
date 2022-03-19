@@ -162,6 +162,12 @@ class _WithPhotoUrl(_Base):
 
 
 @dataclass
+class _WithProfilePicture(_Base):
+    #: Account's profile picture.
+    profile_picture: Optional[str] = None
+
+
+@dataclass
 class _WithNeedConfirmation(_Base):
     #: Whether another account with the same credential already exists.
     #: The user will need to sign in to the original account and then link the
@@ -287,6 +293,7 @@ class SignUpUser(
 class SignInWithPasswordUser(
     _WithDisplayName,
     _WithPhotoUrl,
+    _WithProfilePicture,
     _WithUserBasic,
     _WithResponseKind,
     _WithEmail,
