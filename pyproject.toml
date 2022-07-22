@@ -38,7 +38,7 @@ dateparser = "^1.1.0"
 
 [tool.poetry.dev-dependencies]
 pytest = "^6.1"
-black = "^21.12b0"
+black = "^22.3.0"
 isort = "^5.10.1"
 flake8 = "^3.9.2"
 mypy = "^0.931"
