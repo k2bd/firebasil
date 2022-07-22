@@ -19,7 +19,7 @@ from firebasil.auth.types import (
     SignUpUser,
     UpdateProfileResponse,
 )
-from firebasil.exceptions import AuthRequestException
+from firebasil.exceptions import AuthRequestException, InvalidCustomToken
 from tests.integration.constants import EXAMPLE_USER_PASSWORD, TESTING_PROJECT_ID
 
 
@@ -405,3 +405,12 @@ async def test_email_verification(
     confirmed = await auth_client.confirm_email_verification(verify_code.oob_code)
 
     assert confirmed.email == example_user.email
+
+
+@pytest.mark.asyncio
+async def test_invalid_custom_token(auth_client: AuthClient):
+    """
+    Signing in with an invalid custom token raises InvalidCustomToken
+    """
+    with pytest.raises(InvalidCustomToken):
+        await auth_client.sign_in_with_custom_token("aaaa")

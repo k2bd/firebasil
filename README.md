@@ -39,6 +39,8 @@ async with AuthClient(api_key=...) as auth_client:
 
 The `AuthClient` class will use production GCP endpoints and routes for auth by default, unless the `FIREBASE_AUTH_EMULATOR_HOST` environment variable is set, in which case the defaults change to the emulator. This can be overridden in both cases by passing in `identity_toolkit_url`, `secure_token_url`, and `use_emulator_routes` explicitly.
 
+Common error codes are promoted to exception classes, so these can be directly handled in code without having to parse the error response body.
+
 ## Realtime Database (RTDB)
 
 [![RTDB Baseline](https://img.shields.io/github/milestones/progress/k2bd/firebasil/2)](https://github.com/k2bd/firebasil/milestone/2)
