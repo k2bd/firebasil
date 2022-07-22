@@ -291,9 +291,6 @@ class SignUpUser(
 
 @dataclass
 class SignInWithPasswordUser(
-    _WithDisplayName,
-    _WithPhotoUrl,
-    _WithProfilePicture,
     _WithUserBasic,
     _WithResponseKind,
     _WithEmail,

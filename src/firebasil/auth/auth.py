@@ -31,7 +31,7 @@ from firebasil.auth.types import (
     VerifyResetResponse,
     _Base,
 )
-from firebasil.exceptions import AuthRequestException
+from firebasil.exceptions import get_auth_request_exception
 from firebasil.types import JSON
 from firebasil.warnings import experimental
 
@@ -222,12 +222,11 @@ class AuthClient:
         await self.session.close()
         await self.token_session.close()
 
-    def _handle_request_error(self, response: aiohttp.ClientResponse):
-        try:
-            response.raise_for_status()
-        except Exception as e:
-            msg = f"Error in {response.request_info.method} {response.request_info.url!r}: {str(e)}"  # noqa: E501
-            raise AuthRequestException(msg) from e
+    async def _handle_request_error(self, response: aiohttp.ClientResponse):
+        if not response.ok:
+            body = await response.json()
+            exception = get_auth_request_exception(body)
+            raise exception(body)
 
     async def _post(
         self,
@@ -249,7 +248,7 @@ class AuthClient:
             json=body,
             headers=headers,
         ) as response:
-            self._handle_request_error(response)
+            await self._handle_request_error(response)
             return await response.json()
 
     async def _post_model(
@@ -602,7 +601,7 @@ class AuthClient:
         async with self.session.delete(
             f"/emulator/v1/projects/{project_id}/accounts",
         ) as response:
-            self._handle_request_error(response)
+            await self._handle_request_error(response)
 
     async def emulator_get_configuration(self, project_id: str):
         """
@@ -613,7 +612,7 @@ class AuthClient:
         async with self.session.get(
             f"/emulator/v1/projects/{project_id}/config",
         ) as response:
-            self._handle_request_error(response)
+            await self._handle_request_error(response)
             result = await response.json()
             return EmulatorConfigurtion(**snakeify_dict_keys(result))
 
@@ -630,7 +629,7 @@ class AuthClient:
             f"/emulator/v1/projects/{project_id}/config",
             data=json.dumps(body),
         ) as response:
-            self._handle_request_error(response)
+            await self._handle_request_error(response)
             result = await response.json()
             return EmulatorConfigurtion(**snakeify_dict_keys(result))
 
@@ -643,7 +642,7 @@ class AuthClient:
         async with self.session.get(
             f"/emulator/v1/projects/{project_id}/oobCodes",
         ) as response:
-            self._handle_request_error(response)
+            await self._handle_request_error(response)
             result = await response.json()
             return EmulatorOobCodes(**snakeify_dict_keys(result))
 
@@ -656,6 +655,6 @@ class AuthClient:
         async with self.session.get(
             f"/emulator/v1/projects/{project_id}/verificationCodes",
         ) as response:
-            self._handle_request_error(response)
+            await self._handle_request_error(response)
             result = await response.json()
             return EmulatorSmsCodes(**snakeify_dict_keys(result))
