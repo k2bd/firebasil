@@ -512,7 +512,7 @@ class EmulatorSignInObject(_Base):
 class EmulatorConfigurtion(_Base):
     sign_in: EmulatorSignInObject
 
-    usage_mode: str
+    usage_mode: Optional[str] = None
 
     def __post_init__(self):
         super().__post_init__()
