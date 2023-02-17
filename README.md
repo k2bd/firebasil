@@ -7,6 +7,8 @@
 
 A modern async Firebase client.
 
+<img src="https://user-images.githubusercontent.com/9196372/219683805-9c28dfa3-385c-47bb-88ec-e9fc8187eac4.png"  width="400" height="400">
+
 # Features
 
 ## Auth
